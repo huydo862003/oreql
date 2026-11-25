@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-rust:
+    name: Lint Rust
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node: 'false'
+
+      - run: rustup component add clippy rustfmt
+
+      - name: Clippy
+        run: cargo clippy --locked --workspace -- -D warnings
+
+      - name: Format
+        run: cargo fmt --all -- --check

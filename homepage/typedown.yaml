@@ -1,0 +1,11 @@
+version: "1.0.0"
+vault:
+  root_dir: "vault"
+repo:
+  url: "https://github.com/huydo862003/oreql"
+  root: 'homepage/'
+site:
+  origin: "https://huydo862003.github.io"
+  title: "OreQL"
+  description: "A rust sql parser, transpiler, optimizer, executor"
+  base_path: "/oreql"
