@@ -1,5 +1,5 @@
 [package]
-name = "oreql-core"
+name = "oreql-syntax"
 version.workspace = true
 edition = "2024"
 
