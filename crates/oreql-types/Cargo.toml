@@ -1,0 +1,6 @@
+[package]
+name = "oreql-types"
+edition = "2024"
+version.workspace = true
+
+[dependencies]

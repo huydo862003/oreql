@@ -6,5 +6,6 @@ edition = "2024"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+oreql-types = { version = "0.1.0", path = "../oreql-types/" }
 
 [dev-dependencies]
