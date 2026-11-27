@@ -3,12 +3,5 @@
 version = 4
 
 [[package]]
-name = "oreql-syntax"
-version = "0.1.0"
-dependencies = [
- "oreql-types",
-]
-
-[[package]]
-name = "oreql-types"
+name = "oreql-lang"
 version = "0.1.0"

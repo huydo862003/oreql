@@ -1,9 +1,8 @@
 [package]
-name = "oreql-syntax"
+name = "oreql-lang"
 version.workspace = true
 edition = "2024"
 
 [dependencies]
-oreql-types = { version = "0.1.0", path = "../oreql-types/" }
 
 [dev-dependencies]

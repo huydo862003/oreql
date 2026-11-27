@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
-use oreql_types::TextRange;
+use crate::types::TextRange;
 
-use crate::OreqlSyntaxKind;
+use super::OreqlSyntaxKind;
 
 /// Index to the pool
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
