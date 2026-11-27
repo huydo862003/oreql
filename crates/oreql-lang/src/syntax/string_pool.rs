@@ -6,6 +6,7 @@ pub struct OreqlStringPool<'a> {
 
 /// A reference to a string in the pool
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(C)]
 pub struct OreqlString {
   pub start_byte_offset: u32,
   pub end_byte_offset: u32,

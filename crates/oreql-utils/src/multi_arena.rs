@@ -27,10 +27,23 @@ macro_rules! define_multi_arena {
   ) => {
     $(#[$meta])*
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    #[repr(transparent)]
     $vis struct $Name(u32);
 
     ::paste::paste! {
       impl $Name {
+        /// Create a handle from a raw arena index
+        #[inline]
+        $vis fn from_index(index: u32) -> Self {
+          Self(index)
+        }
+
+        /// Get the raw arena index
+        #[inline]
+        $vis fn index(&self) -> u32 {
+          self.0
+        }
+
         $(
           /// Read a value by node handle
           #[inline]
@@ -58,6 +71,7 @@ macro_rules! define_multi_arena {
         )+
       }
 
+      #[repr(C)]
       $vis struct [<$Name MultiArena>] {
         $($field: ::core::ptr::NonNull<$T>,)+
         length: u32,
