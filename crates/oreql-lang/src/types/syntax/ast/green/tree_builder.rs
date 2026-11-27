@@ -10,6 +10,11 @@ pub struct GreenTreeBuilder {
   stack: Vec<(OreqlSyntaxKind, u32)>,
 }
 
+pub struct GreenTree {
+  pub nodes: OreqlGreenNodeMultiArena,
+  pub root: OreqlGreenNode,
+}
+
 impl GreenTreeBuilder {
   pub fn new() -> Self {
     Self {
@@ -49,9 +54,12 @@ impl GreenTreeBuilder {
   }
 
   /// Finish building and return the arena and root handle
-  pub fn finish(self) -> (OreqlGreenNodeMultiArena, OreqlGreenNode) {
+  pub fn finish(self) -> GreenTree {
     assert!(self.stack.is_empty(), "unclosed nodes remain");
     let root = OreqlGreenNode::from_index(self.arena.len() - 1);
-    (self.arena, root)
+    GreenTree {
+      nodes: self.arena,
+      root,
+    }
   }
 }

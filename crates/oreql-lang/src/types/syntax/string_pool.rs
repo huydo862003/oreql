@@ -1,4 +1,5 @@
 /// Pool for string data during parsing
+#[derive(Debug)]
 pub struct OreqlStringPool<'a> {
   source: &'a str,
   extra: Vec<u8>,

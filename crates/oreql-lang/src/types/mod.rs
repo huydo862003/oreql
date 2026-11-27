@@ -1,9 +1,8 @@
 mod syntax;
 mod text_range;
 
-pub use text_range::TextRange;
 pub use syntax::{
-  ChildrenRange, GreenNodeChildrenIter, GreenNodeData, GreenTreeBuilder, OreqlGreenNode,
+  ChildrenRange, GreenNodeChildrenIter, GreenNodeData, GreenTree, GreenTreeBuilder, OreqlGreenNode,
   OreqlGreenNodeMultiArena, OreqlString, OreqlStringPool, OreqlSyntaxKind,
 };
-
+pub use text_range::TextRange;
