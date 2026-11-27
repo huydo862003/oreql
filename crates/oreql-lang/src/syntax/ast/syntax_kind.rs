@@ -144,7 +144,7 @@ oreql_macros::define_syntax_kinds! {
         // @@global_var
         SessionParameter,
         // unresolved name
-        Var,
+        Variable,
       }
 
       // SQL type name keywords
@@ -604,38 +604,56 @@ oreql_macros::define_syntax_kinds! {
     }
 
     group is_node {
-      // Top-level SQL statements
+      // top-level program
+      Program,
+
+      // Statements
       group is_statement {
-        // top-level program
-        Program,
-        // SELECT ...
-        SelectStatement,
-        // INSERT INTO ... VALUES ...
-        InsertStatement,
-        // UPDATE ... SET ...
-        UpdateStatement,
-        // DELETE FROM ...
-        DeleteStatement,
-        // CREATE TABLE/VIEW/INDEX ...
-        CreateStatement,
-        // ALTER TABLE/VIEW ...
-        AlterStatement,
-        // DROP TABLE/VIEW/INDEX ...
-        DropStatement,
-        // TRUNCATE TABLE ...
-        TruncateStatement,
-        // MERGE INTO ...
-        MergeStatement,
-        // BEGIN ... END
-        BeginStatement,
-        // COMMIT
-        CommitStatement,
-        // ROLLBACK
-        RollbackStatement,
-        // GRANT ... TO ...
-        GrantStatement,
-        // REVOKE ... FROM ...
-        RevokeStatement,
+        // Data manipulation: SELECT, INSERT, UPDATE, DELETE, MERGE
+        group is_dml_statement {
+          // SELECT ...
+          SelectStatement,
+          // INSERT INTO ... VALUES ...
+          InsertStatement,
+          // UPDATE ... SET ...
+          UpdateStatement,
+          // DELETE FROM ...
+          DeleteStatement,
+          // MERGE INTO ...
+          MergeStatement,
+        }
+
+        // Data definition: CREATE, ALTER, DROP, TRUNCATE
+        group is_ddl_statement {
+          // CREATE TABLE/VIEW/INDEX ...
+          CreateStatement,
+          // ALTER TABLE/VIEW ...
+          AlterStatement,
+          // DROP TABLE/VIEW/INDEX ...
+          DropStatement,
+          // TRUNCATE TABLE ...
+          TruncateStatement,
+        }
+
+        // Data control: GRANT, REVOKE
+        group is_dcl_statement {
+          // GRANT ... TO ...
+          GrantStatement,
+          // REVOKE ... FROM ...
+          RevokeStatement,
+        }
+
+        // Transaction control: BEGIN, COMMIT, ROLLBACK
+        group is_tcl_statement {
+          // BEGIN ... END
+          BeginStatement,
+          // COMMIT
+          CommitStatement,
+          // ROLLBACK
+          RollbackStatement,
+        }
+
+        // Other statements
         // EXPLAIN SELECT ...
         ExplainStatement,
         // DECLARE @x INT
@@ -658,7 +676,7 @@ oreql_macros::define_syntax_kinds! {
         PragmaStatement,
       }
 
-      // Subordinate clauses within statements
+      // Clauses: structural parts of statements
       group is_clause {
         // SELECT a, b
         SelectClause,
@@ -704,9 +722,11 @@ oreql_macros::define_syntax_kinds! {
         MergeWhenClause,
         // WHEN NOT MATCHED THEN INSERT ...
         MergeInsertClause,
+        // name AS (SELECT ...) inside WITH
+        CommonTableExpressionClause,
       }
 
-      // Value-producing expressions
+      // Expressions: anything that produces a value
       group is_expression {
         // a + b, x AND y
         BinExpression,
@@ -752,12 +772,74 @@ oreql_macros::define_syntax_kinds! {
         StarExpression,
         // table.*
         QualifiedStarExpression,
-        // fn(args) FILTER (WHERE cond)
-        FilterExpression,
-        // fn(x ORDER BY y)
-        WithinGroupExpression,
-        // t1 AS alias
-        AliasExpression,
+        // :: type cast
+        TypeCastExpression,
+        // placeholder: ?, $1, :name
+        PlaceholderExpression,
+        // x -> x + 1
+        LambdaExpression,
+        // (1, 2, 3)
+        TupleExpression,
+        // ROW(1, 2)
+        RowExpression,
+        // ARRAY[1, 2, 3]
+        ArrayExpression,
+        // JSON path: $.key
+        JsonPathExpression,
+
+        // Expressions modified by a qualifier
+        group is_qualified_expression {
+          // expr AS name
+          AliasExpression,
+          // fn() FILTER (WHERE ...)
+          FilterExpression,
+          // fn() WITHIN GROUP (ORDER BY ...)
+          WithinGroupExpression,
+        }
+
+        // Function invocations
+        group is_function_call {
+          // fn(args)
+          FunctionCall,
+          // COUNT(DISTINCT x)
+          AggregateFunctionCall,
+          // ROW_NUMBER() OVER (...)
+          WindowFunctionCall,
+        }
+
+        // Literal values
+        group is_literal_node {
+          // 42, 3.14
+          NumberLiteral,
+          // 'hello'
+          StringLiteral,
+          // TRUE, FALSE
+          BooleanLiteral,
+          // NULL
+          NullLiteral,
+          // INTERVAL '1' DAY
+          IntervalLiteral,
+          // DATE '2024-01-01'
+          DateLiteral,
+          // TIMESTAMP '2024-01-01 00:00:00'
+          TimestampLiteral,
+        }
+
+        // Named object references
+        group is_reference {
+          // my_col
+          ColumnReference,
+          // my_table
+          TableReference,
+          // my_schema
+          SchemaReference,
+          // my_db
+          DatabaseReference,
+        }
+      }
+
+      // Table expressions: produce a table, not a scalar value
+      group is_table_expression {
         // ... JOIN ... ON ...
         JoinExpression,
         // LATERAL (...)
@@ -770,88 +852,20 @@ oreql_macros::define_syntax_kinds! {
         UnpivotExpression,
         // TABLESAMPLE (10 PERCENT)
         TableSampleExpression,
-        // name AS (SELECT ...)
-        CteExpression,
+      }
+
+      // Set operations: combine query results
+      group is_set_operation {
         // SELECT ... UNION SELECT ...
         UnionExpression,
         // SELECT ... INTERSECT SELECT ...
         IntersectExpression,
         // SELECT ... EXCEPT SELECT ...
         ExceptExpression,
-        // x -> x + 1
-        LambdaExpression,
-        // GROUPING SETS ((a), (b))
-        GroupingSetsExpression,
-        // CUBE(a, b)
-        CubeExpression,
-        // ROLLUP(a, b)
-        RollupExpression,
-        // (1, 2, 3)
-        TupleExpression,
-        // ROW(1, 2)
-        RowExpression,
-        // ARRAY[1, 2, 3]
-        ArrayExpression,
-        // JSON path: $.key
-        JsonPathExpression,
-        // :: type cast
-        TypeCastExpression,
-        // placeholder: ?, $1, :name
-        PlaceholderExpression,
-        // command string after SHOW/EXPLAIN
-        CommandExpression,
       }
 
-      // Function invocation nodes
-      group is_function_call {
-        // fn(args)
-        FunctionCall,
-        // COUNT(DISTINCT x)
-        AggregateFunctionCall,
-        // ROW_NUMBER() OVER (...)
-        WindowFunctionCall,
-      }
-
-      // Literal value nodes in the tree
-      group is_literal_node {
-        // 42, 3.14
-        NumberLiteral,
-        // 'hello'
-        StringLiteral,
-        // TRUE, FALSE
-        BooleanLiteral,
-        // NULL
-        NullLiteral,
-        // INTERVAL '1' DAY
-        IntervalLiteral,
-        // DATE '2024-01-01'
-        DateLiteral,
-        // TIMESTAMP '2024-01-01 00:00:00'
-        TimestampLiteral,
-      }
-
-      // Named object references
-      group is_reference {
-        // my_col
-        ColumnReference,
-        // my_table
-        TableReference,
-        // my_schema
-        SchemaReference,
-        // my_db
-        DatabaseReference,
-      }
-
-      // Window specification nodes
-      group is_window {
-        // (PARTITION BY a ORDER BY b ROWS BETWEEN ...)
-        WindowSpec,
-        // ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        WindowFrame,
-      }
-
-      // Data definition language nodes
-      group is_ddl {
+      // DDL structural nodes
+      group is_ddl_node {
         // col INT NOT NULL
         ColumnDefinition,
         // INT, VARCHAR(255)
@@ -876,8 +890,28 @@ oreql_macros::define_syntax_kinds! {
         CollateConstraint,
       }
 
-      // col ASC NULLS FIRST
-      OrderByItem,
+      // Grouping modifiers for GROUP BY
+      group is_grouping_modifier {
+        // GROUPING SETS ((a), (b))
+        GroupingSets,
+        // CUBE(a, b)
+        Cube,
+        // ROLLUP(a, b)
+        Rollup,
+      }
+
+      // Structural modifiers attached to expressions
+      group is_qualifier {
+        // OVER (PARTITION BY a ORDER BY b ...)
+        WindowSpecification,
+        // ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        WindowFrame,
+        // col ASC NULLS FIRST
+        OrderByItem,
+      }
+
+      // command string after SHOW/EXPLAIN
+      CommandNode,
 
       // Error recovery
       group is_error {
