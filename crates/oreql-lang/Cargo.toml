@@ -3,6 +3,50 @@ name = "oreql-lang"
 version.workspace = true
 edition = "2024"
 
+[features]
+
+# Cloud warehouses
+athena = []
+bigquery = []
+databricks = []
+dremio = []
+fabric = []
+redshift = []
+snowflake = []
+
+# Transactional SQL
+exasol = []
+mysql = []
+oracle = []
+postgres = []
+singlestore = []
+sqlite = []
+teradata = []
+tsql = []
+
+# OLAP engines
+clickhouse = []
+doris = []
+dune = []
+druid = []
+duckdb = []
+materialize = []
+risingwave = []
+starrocks = []
+
+# Query engines
+drill = []
+hive = []
+prestor = []
+solr = []
+spark = []
+spark2 = []
+trino = []
+
+# Others
+prsql = []
+tableau = []
+
 [dependencies]
 oreql-macros = { version = "0.1.0", path = "../oreql-macros" }
 oreql-utils = { version = "0.1.0", path = "../oreql-utils" }
