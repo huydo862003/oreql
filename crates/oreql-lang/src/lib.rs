@@ -1,7 +1,7 @@
-pub mod types;
 pub mod syntax;
+pub mod types;
 
-pub use types::TextRange;
 pub use syntax::{
-  OreqlGreenNode, OreqlGreenNodeMultiArena, OreqlStringPool, OreqlSyntaxKind,
+  OreqlGreenNode, OreqlGreenNodeMultiArena, OreqlString, OreqlStringPool, OreqlSyntaxKind,
 };
+pub use types::TextRange;
