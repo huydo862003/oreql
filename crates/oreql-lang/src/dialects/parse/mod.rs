@@ -48,42 +48,42 @@ pub trait DialectParser {
   /// (open, close) delimiters for **bit** string literals
   ///
   /// e.g. `[("b'", "'"), ("B'", "'")]` for `b'0101'`
-  const BIT_STRING_DELIMITERS: &[(&str, &str)] = &[];
+  const BIT_STRING_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **byte** string literals
   ///
   /// e.g. `[("b'", "'"), ("B'", "'")]` for `b'\x00'`
-  const BYTE_STRING_DELIMITERS: &[(&str, &str)] = &[];
+  const BYTE_STRING_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **hex** string literals
   ///
   /// e.g. `[("x'", "'"), ("X'", "'"), ("0x", "")]` for `x'FF'`
-  const HEX_STRING_DELIMITERS: &[(&str, &str)] = &[];
+  const HEX_STRING_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **raw** string literals
   ///
   /// e.g. `[("r'", "'"), ("R'", "'")]` for `r'no\escape'`
-  const RAW_STRING_DELIMITERS: &[(&str, &str)] = &[];
+  const RAW_STRING_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **heredoc** strings
   ///
   /// e.g. `[("$$", "$$")]` for `$$body$$`
-  const HEREDOC_DELIMITERS: &[(&str, &str)] = &[];
+  const HEREDOC_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **unicode** strings
   ///
   /// e.g. `[("U&'", "'")]` for `U&'text'`
-  const UNICODE_STRING_DELIMITERS: &[(&str, &str)] = &[];
+  const UNICODE_STRING_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// (open, close) delimiters for **regular** string literals
   ///
   /// e.g. `[("'", "'")]` for `'hello'`
-  const STRING_QUOTES: &[(&str, &str)] = &[("'", "'")];
+  const STRING_QUOTE_PATTERNS: &[(&str, &str)] = &[("'", "'")];
 
   /// (open, close) delimiters for **quoted** identifiers
   ///
   /// e.g. `[("\"", "\""), ("[", "]")]` for `"col"` or `[col]`
-  const IDENTIFIER_QUOTES: &[(&str, &str)] = &[("\"", "\"")];
+  const IDENTIFIER_QUOTE_PATTERNS: &[(&str, &str)] = &[("\"", "\"")];
 
   /// Bytes that act as escape characters inside strings
   const STRING_ESCAPE_BYTES: &[u8] = &[b'\''];
@@ -116,7 +116,7 @@ pub trait DialectParser {
   /// (start, end) delimiters for **block** (multi-line) comments
   ///
   /// e.g. `[("/*", "*/"), ("{#", "#}")]` for `/* block */` or `{# jinja #}`
-  const BLOCK_COMMENT_DELIMITERS: &[(&str, &str)] = &[("/*", "*/"), ("{#", "#}")];
+  const BLOCK_COMMENT_DELIMITER_PATTERNS: &[(&str, &str)] = &[("/*", "*/"), ("{#", "#}")];
 
   /// Whether block comments can nest
   const ARE_NESTED_COMMENTS_ALLOWED: bool = true;
