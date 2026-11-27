@@ -30,6 +30,34 @@ macro_rules! define_multi_arena {
     $vis struct $Name(u32);
 
     ::paste::paste! {
+      impl $Name {
+        $(
+          /// Read a value by node handle
+          #[inline]
+          $vis fn $field(&self, arena: &[<$Name MultiArena>]) -> $T {
+            assert!(self.0 < arena.length, "index out of bounds");
+            unsafe { *arena.$field.as_ptr().add(self.0 as usize) }
+          }
+
+          /// Read a value without bounds checking
+          ///
+          /// # Safety
+          ///
+          /// Handle must refer to a valid entry in this arena
+          #[inline]
+          $vis unsafe fn [<$field _unchecked>](&self, arena: &[<$Name MultiArena>]) -> $T {
+            unsafe { *arena.$field.as_ptr().add(self.0 as usize) }
+          }
+
+          /// Write a value to an existing row
+          #[inline]
+          $vis fn [<set_ $field>](&self, arena: &mut [<$Name MultiArena>], value: $T) {
+            assert!(self.0 < arena.length, "index out of bounds");
+            unsafe { ::core::ptr::write(arena.$field.as_ptr().add(self.0 as usize), value) }
+          }
+        )+
+      }
+
       $vis struct [<$Name MultiArena>] {
         $($field: ::core::ptr::NonNull<$T>,)+
         length: u32,
@@ -278,10 +306,10 @@ mod tests {
     let node2 = arena.push(3, 30.0, b'c');
 
     assert_eq!(arena.len(), 3);
-    assert_eq!(arena.ids(node0), 1);
-    assert_eq!(arena.ids(node2), 3);
-    assert_eq!(arena.values(node1), 20.0);
-    assert_eq!(arena.flags(node2), b'c');
+    assert_eq!(node0.ids(&arena), 1);
+    assert_eq!(node2.ids(&arena), 3);
+    assert_eq!(node1.values(&arena), 20.0);
+    assert_eq!(node2.flags(&arena), b'c');
   }
 
   #[test]
@@ -310,8 +338,8 @@ mod tests {
   fn set_value() {
     let mut arena = TestNodeMultiArena::new();
     let node = arena.push(0, 0.0, 0);
-    arena.set_ids(node, 42);
-    assert_eq!(arena.ids(node), 42);
+    node.set_ids(&mut arena, 42);
+    assert_eq!(node.ids(&arena), 42);
   }
 
   #[test]
@@ -323,7 +351,7 @@ mod tests {
     assert!(arena.capacity() > 0);
 
     let node = arena.push(99, 99.0, 99);
-    assert_eq!(arena.ids(node), 99);
+    assert_eq!(node.ids(&arena), 99);
   }
 
   #[test]
@@ -335,7 +363,7 @@ mod tests {
     }
     assert_eq!(arena.len(), 1000);
     for (index, handle) in handles.iter().enumerate() {
-      assert_eq!(arena.ids(*handle), index as u32);
+      assert_eq!(handle.ids(&arena), index as u32);
     }
   }
 
@@ -344,9 +372,9 @@ mod tests {
     let mut arena = TestNodeMultiArena::new();
     let node = arena.push(7, 3.14, b'x');
     unsafe {
-      assert_eq!(arena.ids_unchecked(node), 7);
-      assert_eq!(arena.values_unchecked(node), 3.14);
-      assert_eq!(arena.flags_unchecked(node), b'x');
+      assert_eq!(node.ids_unchecked(&arena), 7);
+      assert_eq!(node.values_unchecked(&arena), 3.14);
+      assert_eq!(node.flags_unchecked(&arena), b'x');
     }
   }
 
@@ -388,11 +416,11 @@ mod tests {
       scratch.push(3, 30.0, b'c');
       scratch.push(4, 40.0, b'd');
       assert_eq!(scratch.len(), 4);
-      assert_eq!(scratch.ids(TestNode(3)), 4);
+      assert_eq!(TestNode(3).ids(&scratch), 4);
     }
 
     assert_eq!(arena.len(), 2);
-    assert_eq!(arena.ids(TestNode(0)), 1);
-    assert_eq!(arena.ids(TestNode(1)), 2);
+    assert_eq!(TestNode(0).ids(&arena), 1);
+    assert_eq!(TestNode(1).ids(&arena), 2);
   }
 }

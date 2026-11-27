@@ -4,5 +4,7 @@ version.workspace = true
 edition = "2024"
 
 [dependencies]
+oreql-utils = { version = "0.1.0", path = "../oreql-utils" }
+paste = "1"
 
 [dev-dependencies]

@@ -5,6 +5,10 @@ version = 4
 [[package]]
 name = "oreql-lang"
 version = "0.1.0"
+dependencies = [
+ "oreql-utils",
+ "paste",
+]
 
 [[package]]
 name = "oreql-utils"
