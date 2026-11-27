@@ -20,7 +20,7 @@ impl GreenTreeBuilder {
 
   /// Push a token (leaf node)
   pub fn push_token(&mut self, kind: OreqlSyntaxKind, text_range: TextRange) -> OreqlGreenNode {
-    let data = GreenNodeData::from_text_range(text_range);
+    let data = GreenNodeData { text_range };
     self.arena.push(kind, data)
   }
 
@@ -39,10 +39,12 @@ impl GreenTreeBuilder {
       "finish_node kind does not match start_node kind"
     );
     let child_count = self.arena.len() - first_child;
-    let data = GreenNodeData::from_children(ChildrenRange {
-      first_child,
-      child_count,
-    });
+    let data = GreenNodeData {
+      children: ChildrenRange {
+        first_child,
+        child_count,
+      },
+    };
     self.arena.push(kind, data)
   }
 

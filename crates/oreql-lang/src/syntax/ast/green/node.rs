@@ -9,6 +9,17 @@ oreql_utils::define_multi_arena! {
   }
 }
 
+/// Data payload for a green node
+///
+/// For tokens, this is a text range
+/// For internal nodes, this is a children range
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub union GreenNodeData {
+  pub text_range: TextRange,
+  pub children: ChildrenRange,
+}
+
 impl OreqlGreenNode {
   /// Get children range without checking the kind
   ///
@@ -70,26 +81,26 @@ impl OreqlGreenNode {
 
   /// Iterate direct children in the arena
   #[inline]
-  pub fn children(&self, arena: &OreqlGreenNodeMultiArena) -> GreenNodeChildren {
+  pub fn children(&self, arena: &OreqlGreenNodeMultiArena) -> GreenNodeChildrenIter {
     if self.kind(arena).is_node() {
       let range = unsafe { self.data(arena).children };
-      GreenNodeChildren {
+      GreenNodeChildrenIter {
         current: range.first_child,
         end: range.first_child + range.child_count,
       }
     } else {
-      GreenNodeChildren { current: 0, end: 0 }
+      GreenNodeChildrenIter { current: 0, end: 0 }
     }
   }
 }
 
 /// Iterator over a green node's direct children
-pub struct GreenNodeChildren {
+pub struct GreenNodeChildrenIter {
   current: u32,
   end: u32,
 }
 
-impl Iterator for GreenNodeChildren {
+impl Iterator for GreenNodeChildrenIter {
   type Item = OreqlGreenNode;
 
   #[inline]
@@ -109,7 +120,7 @@ impl Iterator for GreenNodeChildren {
   }
 }
 
-impl ExactSizeIterator for GreenNodeChildren {}
+impl ExactSizeIterator for GreenNodeChildrenIter {}
 
 /// Range of children in the arena for internal nodes
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -117,35 +128,4 @@ impl ExactSizeIterator for GreenNodeChildren {}
 pub struct ChildrenRange {
   pub first_child: u32,
   pub child_count: u32,
-}
-
-/// Data payload for a green node
-///
-/// For tokens, this is a text range
-/// For internal nodes, this is a children range
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub union GreenNodeData {
-  pub text_range: TextRange,
-  pub children: ChildrenRange,
-}
-
-impl Default for GreenNodeData {
-  fn default() -> Self {
-    Self {
-      text_range: TextRange::default(),
-    }
-  }
-}
-
-impl GreenNodeData {
-  #[inline]
-  pub fn from_text_range(text_range: TextRange) -> Self {
-    Self { text_range }
-  }
-
-  #[inline]
-  pub fn from_children(children: ChildrenRange) -> Self {
-    Self { children }
-  }
 }
