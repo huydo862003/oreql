@@ -16,7 +16,10 @@ impl OreqlGreenNode {
   ///
   /// Must be an internal node
   #[inline]
-  pub unsafe fn node_children_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> ChildrenRange {
+  pub unsafe fn node_children_range_unchecked(
+    &self,
+    arena: &OreqlGreenNodeMultiArena,
+  ) -> ChildrenRange {
     unsafe { self.data(arena).children }
   }
 
