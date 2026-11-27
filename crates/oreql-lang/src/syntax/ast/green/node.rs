@@ -10,6 +10,44 @@ oreql_utils::define_multi_arena! {
 }
 
 impl OreqlGreenNode {
+  /// Get children range without checking the kind
+  ///
+  /// # Safety
+  ///
+  /// Must be an internal node
+  #[inline]
+  pub unsafe fn node_children_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> ChildrenRange {
+    unsafe { self.data(arena).children }
+  }
+
+  /// Get text range of an internal node from its children
+  ///
+  /// # Safety
+  ///
+  /// Must be an internal node
+  pub unsafe fn node_text_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
+    let children = unsafe { self.data(arena).children };
+    if children.child_count == 0 {
+      return TextRange::default();
+    }
+    let first = OreqlGreenNode::from_index(children.first_child);
+    let last = OreqlGreenNode::from_index(children.first_child + children.child_count - 1);
+    TextRange {
+      start_byte_offset: first.text_span(arena).start_byte_offset,
+      end_byte_offset: last.text_span(arena).end_byte_offset,
+    }
+  }
+
+  /// Get text range without checking the kind
+  ///
+  /// # Safety
+  ///
+  /// Must be a token
+  #[inline]
+  pub unsafe fn token_text_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
+    unsafe { self.data(arena).text_range }
+  }
+
   /// Text span covering this node
   pub fn text_span(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
     if self.kind(arena).is_token() {
