@@ -13,7 +13,7 @@ pub trait DialectParser {
     parser.parse()
   }
 
-  /* Various configs */
+  /* Various token configs */
 
   /// Maps single ASCII bytes to their token kind for the lexer
   const SINGLE_BYTE_TOKENS: ByteLut<OreqlSyntaxKind> = ByteLut::new()
@@ -108,11 +108,23 @@ pub trait DialectParser {
   /// Whether escape characters work inside raw strings
   const ARE_ESCAPES_ALLOWED_IN_RAW_STRINGS: bool = true;
 
-  /// Whether /* */ comments can nest
+  /// Start patterns for **inline** (single-line) comments
+  ///
+  /// e.g. `["--"]` for `-- comment to end of line`
+  const INLINE_COMMENT_START_PATTERNS: &[&str] = &["--"];
+
+  /// (start, end) delimiters for **block** (multi-line) comments
+  ///
+  /// e.g. `[("/*", "*/"), ("{#", "#}")]` for `/* block */` or `{# jinja #}`
+  const BLOCK_COMMENT_DELIMITERS: &[(&str, &str)] = &[("/*", "*/"), ("{#", "#}")];
+
+  /// Whether block comments can nest
   const ARE_NESTED_COMMENTS_ALLOWED: bool = true;
 
-  /// String that starts a hint comment like /*+ hint */
-  const HINT_START_PATTERN: &str = "/*+";
+  /// Pattern that starts a **hint** comment like `/*+ hint */`
+  ///
+  /// `None` means hints are not supported (most dialects)
+  const HINT_START_PATTERN: Option<&str> = None;
 
   /// Token kinds that can appear before a hint comment
   const HINT_PRECEDING_ALLOWED_TOKENS: &[OreqlSyntaxKind] =
