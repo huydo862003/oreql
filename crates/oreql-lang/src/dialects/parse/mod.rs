@@ -7,13 +7,17 @@ use oreql_utils::ByteLut;
 pub use context::ParserContext;
 
 pub trait DialectParser {
-  /* Entrypoint - This should not be overriden */
+  /* Entrypoint */
+
   fn parse<'a>(string_pool: &'a mut OreqlStringPool<'a>) -> GreenTree {
     let mut parser: ParserContext<'_, Self> = ParserContext::new(string_pool);
     parser.parse()
   }
 
-  /* Various token configs */
+
+  /* Tokenizer config */
+
+  /** Single-byte tokens */
 
   /// Maps single ASCII bytes to their token kind for the lexer
   const SINGLE_BYTE_TOKENS: ByteLut<OreqlSyntaxKind> = ByteLut::new()
@@ -44,6 +48,8 @@ pub trait DialectParser {
     .set(b'?', Question)
     .set(b'@', At)
     .set(b'#', Hash);
+
+  /** String literals */
 
   /// (open, close) delimiters for **bit** string literals
   ///
@@ -80,33 +86,43 @@ pub trait DialectParser {
   /// e.g. `[("'", "'")]` for `'hello'`
   const STRING_QUOTE_PATTERNS: &[(&str, &str)] = &[("'", "'")];
 
-  /// (open, close) delimiters for **quoted** identifiers
-  ///
-  /// e.g. `[("\"", "\""), ("[", "]")]` for `"col"` or `[col]`
-  const IDENTIFIER_QUOTE_PATTERNS: &[(&str, &str)] = &[("\"", "\"")];
-
-  /// Bytes that act as escape characters inside strings
-  const STRING_ESCAPE_BYTES: &[u8] = &[b'\''];
-
-  /// Bytes that act as escape characters inside byte strings
-  const BYTE_STRING_ESCAPE_BYTES: &[u8] = &[b'\''];
-
-  /// Bytes that act as escape characters inside identifiers
-  const IDENTIFIER_ESCAPE_BYTES: &[u8] = &[];
-
-  /// Bytes that can follow an escape character like \n, \t, \r
-  const ESCAPE_FOLLOW_ALLOWED_BYTES: &[u8] = &[];
-
-  /// Bytes that can appear inside variable names like @var or $var
-  const WITHIN_VARIABLE_ALLOWED_BYTES: &[u8] = &[];
-
   /// Token kind emitted when a heredoc prefix has no matching tag
   ///
   /// e.g. `$$` without a closing `$$` falls back to this kind
   const HEREDOC_FALLBACK_KIND: OreqlSyntaxKind = Variable;
 
+  /** Identifiers */
+
+  /// (open, close) delimiters for **quoted** identifiers
+  ///
+  /// e.g. `[("\"", "\""), ("[", "]")]` for `"col"` or `[col]`
+  const IDENTIFIER_QUOTE_PATTERNS: &[(&str, &str)] = &[("\"", "\"")];
+
+  /// Bytes that can appear inside variable names
+  ///
+  /// e.g. `&[b'@', b'$']` to allow `@var` or `$var`
+  const WITHIN_VARIABLE_ALLOWED_BYTES: &[u8] = &[];
+
+  /** Escape characters */
+
+  /// Bytes that act as escape characters inside **strings**
+  const STRING_ESCAPE_BYTES: &[u8] = &[b'\''];
+
+  /// Bytes that act as escape characters inside **byte strings**
+  const BYTE_STRING_ESCAPE_BYTES: &[u8] = &[b'\''];
+
+  /// Bytes that act as escape characters inside **identifiers**
+  const IDENTIFIER_ESCAPE_BYTES: &[u8] = &[];
+
+  /// Bytes that can follow an escape character
+  ///
+  /// e.g. `&[b'n', b't', b'r', b'\\']` for `\n`, `\t`, `\r`
+  const ESCAPE_FOLLOW_ALLOWED_BYTES: &[u8] = &[];
+
   /// Whether escape characters work inside raw strings
   const ARE_ESCAPES_ALLOWED_IN_RAW_STRINGS: bool = true;
+
+  /** Comments */
 
   /// Start patterns for **inline** (single-line) comments
   ///
@@ -121,10 +137,12 @@ pub trait DialectParser {
   /// Whether block comments can nest
   const ARE_NESTED_COMMENTS_ALLOWED: bool = true;
 
-  /// Pattern that starts a **hint** comment like `/*+ hint */`
+  /** Hints */
+
+  /// (start, end) delimiters for **hint** comments
   ///
-  /// `None` means hints are not supported (most dialects)
-  const HINT_START_PATTERN: Option<&str> = None;
+  /// e.g. `&[("/*+", "*/")]` for `/*+ hint */`
+  const HINT_COMMENT_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
 
   /// Token kinds that can appear before a hint comment
   const HINT_PRECEDING_ALLOWED_TOKENS: &[OreqlSyntaxKind] =
