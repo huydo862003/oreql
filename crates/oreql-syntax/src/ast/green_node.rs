@@ -19,7 +19,7 @@ impl OreqlGreenNode {
 
   #[inline]
   pub unsafe fn kind_unchecked(&self, pool: &OreqlGreenNodePool) -> OreqlSyntaxKind {
-    *pool.kinds.get_unchecked(self.0 as usize)
+    unsafe { *pool.kinds.get_unchecked(self.0 as usize) }
   }
 
   #[inline]
@@ -32,7 +32,7 @@ impl OreqlGreenNode {
 
   #[inline]
   pub unsafe fn text_span_unchecked(&self, pool: &OreqlGreenNodePool) -> TextRange {
-    *pool.text_spans.get_unchecked(self.0 as usize)
+    unsafe { *pool.text_spans.get_unchecked(self.0 as usize) }
   }
 }
 
