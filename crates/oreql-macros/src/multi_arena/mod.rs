@@ -158,6 +158,7 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
     #[repr(transparent)]
     #visibility struct #name(u32);
 
+    #[allow(non_snake_case)]
     impl #name {
       /// Create a handle from a raw arena index
       #[inline]
@@ -181,6 +182,7 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
       capacity: u32,
     }
 
+    #[allow(non_snake_case)]
     impl #arena_name {
       #visibility fn new() -> Self {
         Self {
