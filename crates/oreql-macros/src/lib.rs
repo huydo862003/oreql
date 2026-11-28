@@ -1,3 +1,4 @@
+mod ast_node;
 mod diagnostic;
 mod dialect_config;
 mod multi_arena;
@@ -74,6 +75,28 @@ pub fn define_multi_arena(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
   diagnostic::diagnostic_kind_impl(attr, item)
+}
+
+/// Defines a typed AST node wrapper with child accessors
+///
+/// ```ignore
+/// #[oreql_macros::ast_node(SelectStatement)]
+/// pub struct SelectStatementNode {
+///   select_clause: SelectClauseNode,
+///   from_clause: FromClauseNode,
+///   where_clause: WhereClauseNode,
+/// }
+///
+/// // Generates:
+/// // - SelectStatementNode(OreqlRedNode) newtype
+/// // - AstNode trait impl (cast, syntax)
+/// // - select_clause(self, &tree) -> Option<SelectClauseNode>
+/// // - from_clause(self, &tree) -> Option<FromClauseNode>
+/// // - where_clause(self, &tree) -> Option<WhereClauseNode>
+/// ```
+#[proc_macro_attribute]
+pub fn ast_node(attr: TokenStream, item: TokenStream) -> TokenStream {
+  ast_node::ast_node_impl(attr, item)
 }
 
 /// Declares typed dialect config wrappers with defaults
