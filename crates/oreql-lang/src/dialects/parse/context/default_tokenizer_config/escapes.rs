@@ -18,4 +18,7 @@ oreql_macros::dialect_config! {
   /// e.g. `.set(b'n', true).set(b't', true)` for `\n`, `\t`
   pub struct EscapeFollowBytesConfig(ByteLut<bool>)
     = ByteLut::new();
+
+  /// Whether escape characters work inside raw strings
+  pub struct AreEscapesAllowedInRawStringsConfig(bool) = true;
 }

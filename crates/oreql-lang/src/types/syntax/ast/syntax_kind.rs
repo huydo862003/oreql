@@ -298,6 +298,10 @@ oreql_macros::define_syntax_kinds! {
       }
 
       // SQL language keywords
+      //
+      // WARNING: multi-word keywords (e.g. KeywordGroupBy, KeywordOrderBy)
+      // have a text span that includes the whitespace between words, so the
+      // token may contain trivia (spaces, tabs)
       group is_keyword {
         // ALL
         KeywordAll,

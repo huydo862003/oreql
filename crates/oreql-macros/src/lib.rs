@@ -78,10 +78,6 @@ pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Declares typed dialect config wrappers with defaults
 ///
-/// Each declaration generates a newtype with `Deref` to the
-/// inner type and a `::default()` that returns a lazily
-/// initialized static reference
-///
 /// ```ignore
 /// dialect_config! {
 ///   pub struct KeywordsConfig(TrieMap<SyntaxKind>) =

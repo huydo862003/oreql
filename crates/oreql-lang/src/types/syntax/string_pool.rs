@@ -15,7 +15,6 @@ pub struct OreqlString {
 
 impl OreqlString {
   /// Resolve to a byte slice
-  #[inline]
   pub fn get<'a>(&self, pool: &'a OreqlStringPool) -> &'a [u8] {
     let source_len = pool.source.len() as u32;
     if self.start_byte_offset < source_len {
@@ -32,13 +31,13 @@ impl OreqlString {
   /// # Safety
   ///
   /// The referenced bytes must be valid UTF-8
-  #[inline]
   pub unsafe fn get_str<'a>(&self, pool: &'a OreqlStringPool) -> &'a str {
     unsafe { core::str::from_utf8_unchecked(self.get(pool)) }
   }
 }
 
 impl<'a> OreqlStringPool<'a> {
+  #[inline]
   pub fn new(source: &'a str) -> Self {
     Self {
       source,
@@ -46,8 +45,12 @@ impl<'a> OreqlStringPool<'a> {
     }
   }
 
+  /// The original source text
+  pub fn source_text(&self) -> &'a str {
+    self.source
+  }
+
   /// Create a reference to a source slice (no copy)
-  #[inline]
   pub fn create_string(&self, start_byte_offset: u32, end_byte_offset: u32) -> OreqlString {
     debug_assert!((end_byte_offset as usize) <= self.source.len());
     OreqlString {
@@ -57,6 +60,7 @@ impl<'a> OreqlStringPool<'a> {
   }
 
   /// Push decoded bytes into the extra buffer and return a reference
+  #[inline]
   pub fn create_extra_string(&mut self, bytes: &[u8]) -> OreqlString {
     let source_len = self.source.len() as u32;
     let start_byte_offset = source_len + self.extra.len() as u32;

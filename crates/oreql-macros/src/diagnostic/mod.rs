@@ -94,6 +94,8 @@ pub fn diagnostic_kind_impl(_attr: TokenStream, item: TokenStream) -> TokenStrea
       pub fn code_str(&self) -> &'static str {
         match self {
           #(#code_string_arms,)*
+          #[allow(unreachable_patterns)]
+          _ => unreachable!(),
         }
       }
 
@@ -102,6 +104,8 @@ pub fn diagnostic_kind_impl(_attr: TokenStream, item: TokenStream) -> TokenStrea
       pub fn message(&self) -> String {
         match self {
           #(#message_arms)*
+          #[allow(unreachable_patterns)]
+          _ => unreachable!(),
         }
       }
     }

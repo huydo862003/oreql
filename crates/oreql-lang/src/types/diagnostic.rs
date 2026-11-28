@@ -3,7 +3,14 @@ use crate::TextRange;
 #[oreql_macros::diagnostic_kind]
 pub enum OreqlDiagnosticKind {
   /* Tokenizer */
-
+  #[message("expected digits after exponent in numeric literal")]
+  ExpectedDigitsAfterExponent,
+  #[message("unterminated block comment, expected closing `{expected}`")]
+  UnterminatedBlockComment { expected: String },
+  #[message("unterminated string literal, expected closing `{expected}`")]
+  UnterminatedStringLiteral { expected: String },
+  #[message("unterminated quoted identifier, expected closing `{expected}`")]
+  UnterminatedQuotedIdentifier { expected: String },
   /* Parser */
 }
 
@@ -21,6 +28,7 @@ pub struct OreqlDiagnostic {
 }
 
 impl OreqlDiagnostic {
+  #[inline]
   pub fn error(kind: OreqlDiagnosticKind, range: TextRange) -> Self {
     Self {
       kind,
@@ -29,6 +37,7 @@ impl OreqlDiagnostic {
     }
   }
 
+  #[inline]
   pub fn warning(kind: OreqlDiagnosticKind, range: TextRange) -> Self {
     Self {
       kind,
@@ -37,10 +46,12 @@ impl OreqlDiagnostic {
     }
   }
 
+  #[inline]
   pub fn code_str(&self) -> &'static str {
     self.kind.code_str()
   }
 
+  #[inline]
   pub fn message(&self) -> String {
     self.kind.message()
   }

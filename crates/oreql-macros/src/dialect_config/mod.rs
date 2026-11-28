@@ -23,7 +23,7 @@ pub fn dialect_config_impl(input: TokenStream) -> TokenStream {
       impl #name {
         /// Create from an inner value
         #[inline]
-        #visibility fn new(inner: #inner_type) -> Self {
+        #visibility const fn new(inner: #inner_type) -> Self {
           Self(inner)
         }
 

@@ -24,12 +24,14 @@ impl GreenTreeBuilder {
   }
 
   /// Push a token (leaf node)
+  #[inline]
   pub fn push_token(&mut self, kind: OreqlSyntaxKind, text_range: TextRange) -> OreqlGreenNode {
     let data = GreenNodeData { text_range };
     self.arena.push(kind, data)
   }
 
   /// Begin a new internal node at the current arena position
+  #[inline]
   pub fn start_node(&mut self, kind: OreqlSyntaxKind) {
     self.stack.push((kind, self.arena.len()));
   }
@@ -37,6 +39,7 @@ impl GreenTreeBuilder {
   /// Finish the current internal node
   ///
   /// Children are everything pushed since the matching `start_node`
+  #[inline]
   pub fn finish_node(&mut self, kind: OreqlSyntaxKind) -> OreqlGreenNode {
     let (started_kind, first_child) = self.stack.pop().expect("no matching start_node");
     debug_assert_eq!(

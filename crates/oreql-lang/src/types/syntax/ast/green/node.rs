@@ -26,7 +26,6 @@ impl OreqlGreenNode {
   /// # Safety
   ///
   /// Must be an internal node
-  #[inline]
   pub unsafe fn node_children_range_unchecked(
     &self,
     arena: &OreqlGreenNodeMultiArena,
@@ -39,6 +38,7 @@ impl OreqlGreenNode {
   /// # Safety
   ///
   /// Must be an internal node
+  #[inline]
   pub unsafe fn node_text_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
     let children = unsafe { self.data(arena).children };
     if children.child_count == 0 {
@@ -57,12 +57,12 @@ impl OreqlGreenNode {
   /// # Safety
   ///
   /// Must be a token
-  #[inline]
   pub unsafe fn token_text_range_unchecked(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
     unsafe { self.data(arena).text_range }
   }
 
   /// Text span covering this node
+  #[inline]
   pub fn text_span(&self, arena: &OreqlGreenNodeMultiArena) -> TextRange {
     if self.kind(arena).is_token() {
       return unsafe { self.data(arena).text_range };
@@ -80,7 +80,6 @@ impl OreqlGreenNode {
   }
 
   /// Iterate direct children in the arena
-  #[inline]
   pub fn children(&self, arena: &OreqlGreenNodeMultiArena) -> GreenNodeChildrenIter {
     if self.kind(arena).is_node() {
       let range = unsafe { self.data(arena).children };

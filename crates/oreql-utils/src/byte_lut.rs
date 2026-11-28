@@ -12,13 +12,13 @@ impl<V: Copy> ByteLut<V> {
   }
 
   /// Set a mapping, returning the new table
+  #[inline]
   pub const fn set(mut self, byte: u8, value: V) -> Self {
     self.table[byte as usize] = Some(value);
     self
   }
 
   /// Look up a byte
-  #[inline]
   pub const fn get(&self, byte: u8) -> Option<V> {
     if (byte as usize) < 128 {
       self.table[byte as usize]
@@ -28,7 +28,6 @@ impl<V: Copy> ByteLut<V> {
   }
 
   /// Check if a byte has a mapping
-  #[inline]
   pub const fn contains(&self, byte: u8) -> bool {
     if (byte as usize) < 128 {
       self.table[byte as usize].is_some()

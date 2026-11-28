@@ -86,7 +86,6 @@ impl<V: Copy> TrieMap<V> {
   }
 
   /// Look up a key, returning Found(value), Prefix, or NotFound
-  #[inline]
   pub fn lookup(&self, key: &[u8]) -> TrieResult<V> {
     let mut node_index = 0usize;
 
@@ -104,7 +103,6 @@ impl<V: Copy> TrieMap<V> {
   }
 
   /// Get the value for a key, or None
-  #[inline]
   pub fn get(&self, key: &[u8]) -> Option<V> {
     match self.lookup(key) {
       TrieResult::Found(value) => Some(value),
@@ -113,9 +111,18 @@ impl<V: Copy> TrieMap<V> {
   }
 
   /// Check if a key exists
-  #[inline]
   pub fn contains(&self, key: &[u8]) -> bool {
     matches!(self.lookup(key), TrieResult::Found(_))
+  }
+
+  /// Walk one byte from the given node for incremental matching
+  pub fn step(&self, node_index: usize, byte: u8) -> Option<usize> {
+    self.find_child(node_index, byte)
+  }
+
+  /// Get the value at a node (from incremental walking)
+  pub fn value_at(&self, node_index: usize) -> Option<V> {
+    unsafe { self.nodes.get_unchecked(node_index) }.value
   }
 
   #[inline]
