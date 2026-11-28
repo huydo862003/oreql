@@ -8,10 +8,6 @@ mod utils;
 use proc_macro::TokenStream;
 
 /// Defines a syntax kind enum with nested group support
-///
-/// Each `group is_name { ... }` block generates an `is_name()` method
-/// Groups can nest arbitrarily
-///
 /// ```ignore
 /// define_syntax_kinds! {
 ///   #[repr(u16)]
@@ -46,7 +42,6 @@ pub fn define_syntax_kinds(input: TokenStream) -> TokenStream {
 ///   }
 /// }
 ///
-/// // GreenNode(u32) handle, GreenNodeMultiArena SOA container
 /// let mut arena = GreenNodeMultiArena::new();
 /// let node = arena.push(42u16, 100u32);
 /// assert_eq!(node.kind(&arena), 42);
@@ -57,8 +52,6 @@ pub fn define_multi_arena(input: TokenStream) -> TokenStream {
 }
 
 /// Defines a diagnostic kind enum with `#[message]` attributes
-///
-/// Generates `code_str()` and `message()` methods for each variant
 ///
 /// ```ignore
 /// #[oreql_macros::diagnostic_kind]
@@ -89,12 +82,6 @@ pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///   select_clause: SelectClause,
 ///   from_clause: FromClause,
 /// }
-///
-/// // Generates SelectStatement<'a> with:
-/// // - AstNode impl (cast on OreqlSyntaxKind::SelectStatement)
-/// // - TryFrom<(OreqlRedNode, &OreqlRedTree)>
-/// // - select_clause(&self) -> Option<OreqlRedNode>
-/// // - from_clause(&self) -> Option<OreqlRedNode>
 /// ```
 #[proc_macro_attribute]
 pub fn ast_node(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -102,9 +89,6 @@ pub fn ast_node(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 /// Defines a typed AST node for a SyntaxKind group
-///
-/// Uses the `is_*()` predicate for casting. Compile-time asserts
-/// the predicate exists on OreqlSyntaxKind.
 ///
 /// ```ignore
 /// #[oreql_macros::ast_group(is_expression)]

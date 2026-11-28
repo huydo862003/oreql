@@ -1,19 +1,18 @@
 pub mod default_tokenizer_config;
 pub mod tokenize;
 
-use std::marker::PhantomData;
-
+use super::DialectParser;
 use crate::{
-  GreenTree, GreenTreeBuilder, OreqlDiagnostic, OreqlDiagnosticKind, OreqlStringPool, TextRange,
+  OreqlDiagnostic, OreqlDiagnosticKind, OreqlString, OreqlStringPool, OreqlSyntaxKind, SyntaxTree,
+  SyntaxTreeBuilder, TextRange,
   dialects::parse::{TokenizeConfig, context::tokenize::PeekResult},
 };
-
-use super::DialectParser;
+use std::marker::PhantomData;
 
 pub struct ParserContext<'a, D: DialectParser> {
   pub diagnostics: Vec<OreqlDiagnostic>,
   string_pool: &'a OreqlStringPool<'a>,
-  builder: GreenTreeBuilder,
+  builder: SyntaxTreeBuilder,
   current_byte_offset: usize,
   _dialect: PhantomData<D>,
 }
@@ -22,7 +21,7 @@ impl<'a, D: DialectParser> ParserContext<'a, D> {
   pub fn new(string_pool: &'a OreqlStringPool<'a>) -> Self {
     ParserContext {
       string_pool,
-      builder: GreenTreeBuilder::new(),
+      builder: SyntaxTreeBuilder::new(),
       diagnostics: Vec::new(),
       current_byte_offset: 0,
       _dialect: PhantomData,
@@ -156,13 +155,6 @@ impl<'a, D: DialectParser> ParserContext<'a, D> {
     loop {
       let peeked = self.peek_next_token(config);
       if peeked.kind == crate::OreqlSyntaxKind::Whitespace {
-        self.builder.push_token(
-          peeked.kind,
-          crate::TextRange {
-            start_byte_offset: peeked.string.start_byte_offset,
-            end_byte_offset: peeked.string.end_byte_offset,
-          },
-        );
         self.eat_peeked_token(peeked);
       } else {
         break;
@@ -176,13 +168,6 @@ impl<'a, D: DialectParser> ParserContext<'a, D> {
     loop {
       let peeked = self.peek_next_token(config);
       if peeked.kind.is_trivia() {
-        self.builder.push_token(
-          peeked.kind,
-          crate::TextRange {
-            start_byte_offset: peeked.string.start_byte_offset,
-            end_byte_offset: peeked.string.end_byte_offset,
-          },
-        );
         self.eat_peeked_token(peeked);
       } else {
         break;
@@ -195,28 +180,12 @@ impl<'a, D: DialectParser> ParserContext<'a, D> {
   pub fn eat_next_significant_token(
     &mut self,
     config: &TokenizeConfig,
-  ) -> (crate::OreqlSyntaxKind, crate::OreqlString) {
+  ) -> (OreqlSyntaxKind, OreqlString) {
     self.consume_trivia(config);
     self.eat_next_token(config)
   }
 
-  /// Consume trivia, then peek the next significant token
-  #[inline]
-  pub fn peek_next_significant_token(&mut self, config: &TokenizeConfig) -> tokenize::PeekResult {
-    let saved_offset = self.current_byte_offset;
-    let diagnostics_before = self.diagnostics.len();
-    self.consume_trivia(config);
-    let (kind, string) = self.eat_next_token(config);
-    let pending_diagnostics = self.diagnostics.drain(diagnostics_before..).collect();
-    self.current_byte_offset = saved_offset;
-    tokenize::PeekResult {
-      kind,
-      string,
-      pending_diagnostics,
-    }
-  }
-
-  pub fn parse(&mut self) -> GreenTree {
+  pub fn parse(&mut self) -> SyntaxTree {
     unimplemented!()
   }
 }

@@ -6,33 +6,6 @@ use quote::{format_ident, quote};
 use crate::utils::pascal_to_snake;
 use parse::{AstNodeField, parse_fields, parse_groups};
 
-fn generate_accessors<'a>(
-  visibility: &'a syn::Visibility,
-  fields: &'a [AstNodeField],
-) -> impl Iterator<Item = proc_macro2::TokenStream> + 'a {
-  fields.iter().map(move |field| {
-    let field_name = &field.name;
-    let child_kind = &field.kind;
-    let nth = field.nth;
-
-    if nth == 0 {
-      quote! {
-        #[inline]
-        #visibility fn #field_name(&self) -> Option<OreqlRedNode> {
-          self.node.first_child_of_kind(self.tree, OreqlSyntaxKind::#child_kind)
-        }
-      }
-    } else {
-      quote! {
-        #[inline]
-        #visibility fn #field_name(&self) -> Option<OreqlRedNode> {
-          self.node.nth_child_of_kind(self.tree, OreqlSyntaxKind::#child_kind, #nth)
-        }
-      }
-    }
-  })
-}
-
 /// `#[ast_node]` or `#[ast_node(group1, group2)]`
 pub fn ast_node_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
   let groups = parse_groups(attr);
@@ -62,13 +35,13 @@ pub fn ast_node_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     #[derive(Clone, Copy)]
     #visibility struct #name<'a> {
-      node: OreqlRedNode,
-      tree: &'a OreqlRedTree,
+      node: OreqlSyntaxNode,
+      tree: &'a SyntaxTree,
     }
 
     impl<'a> AstNode<'a> for #name<'a> {
       #[inline]
-      fn cast(node: OreqlRedNode, tree: &'a OreqlRedTree) -> Option<Self> {
+      fn cast(node: OreqlSyntaxNode, tree: &'a SyntaxTree) -> Option<Self> {
         if node.kind(tree) == OreqlSyntaxKind::#name {
           Some(Self { node, tree })
         } else {
@@ -77,21 +50,21 @@ pub fn ast_node_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
       }
 
       #[inline]
-      fn syntax(&self) -> OreqlRedNode {
+      fn syntax(&self) -> OreqlSyntaxNode {
         self.node
       }
 
       #[inline]
-      fn tree(&self) -> &'a OreqlRedTree {
+      fn tree(&self) -> &'a SyntaxTree {
         self.tree
       }
     }
 
-    impl<'a> ::core::convert::TryFrom<(OreqlRedNode, &'a OreqlRedTree)> for #name<'a> {
+    impl<'a> ::core::convert::TryFrom<(OreqlSyntaxNode, &'a SyntaxTree)> for #name<'a> {
       type Error = ();
 
       #[inline]
-      fn try_from((node, tree): (OreqlRedNode, &'a OreqlRedTree)) -> Result<Self, ()> {
+      fn try_from((node, tree): (OreqlSyntaxNode, &'a SyntaxTree)) -> Result<Self, ()> {
         <Self as AstNode>::cast(node, tree).ok_or(())
       }
     }
@@ -104,8 +77,6 @@ pub fn ast_node_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 /// `#[ast_group]` or `#[ast_group(predicate)]`
-///
-/// Predicate inferred from struct name as `is_{snake_case}` if not provided
 pub fn ast_group_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
   let item_struct = syn::parse_macro_input!(item as syn::ItemStruct);
   let visibility = &item_struct.vis;
@@ -132,13 +103,13 @@ pub fn ast_group_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     #[derive(Clone, Copy)]
     #visibility struct #name<'a> {
-      node: OreqlRedNode,
-      tree: &'a OreqlRedTree,
+      node: OreqlSyntaxNode,
+      tree: &'a SyntaxTree,
     }
 
     impl<'a> AstNode<'a> for #name<'a> {
       #[inline]
-      fn cast(node: OreqlRedNode, tree: &'a OreqlRedTree) -> Option<Self> {
+      fn cast(node: OreqlSyntaxNode, tree: &'a SyntaxTree) -> Option<Self> {
         if node.kind(tree).#predicate() {
           Some(Self { node, tree })
         } else {
@@ -147,21 +118,21 @@ pub fn ast_group_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
       }
 
       #[inline]
-      fn syntax(&self) -> OreqlRedNode {
+      fn syntax(&self) -> OreqlSyntaxNode {
         self.node
       }
 
       #[inline]
-      fn tree(&self) -> &'a OreqlRedTree {
+      fn tree(&self) -> &'a SyntaxTree {
         self.tree
       }
     }
 
-    impl<'a> ::core::convert::TryFrom<(OreqlRedNode, &'a OreqlRedTree)> for #name<'a> {
+    impl<'a> ::core::convert::TryFrom<(OreqlSyntaxNode, &'a SyntaxTree)> for #name<'a> {
       type Error = ();
 
       #[inline]
-      fn try_from((node, tree): (OreqlRedNode, &'a OreqlRedTree)) -> Result<Self, ()> {
+      fn try_from((node, tree): (OreqlSyntaxNode, &'a SyntaxTree)) -> Result<Self, ()> {
         <Self as AstNode>::cast(node, tree).ok_or(())
       }
     }
@@ -171,4 +142,31 @@ pub fn ast_group_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
   }
   .into()
+}
+
+fn generate_accessors<'a>(
+  visibility: &'a syn::Visibility,
+  fields: &'a [AstNodeField],
+) -> impl Iterator<Item = proc_macro2::TokenStream> + 'a {
+  fields.iter().map(move |field| {
+    let field_name = &field.name;
+    let child_kind = &field.kind;
+    let nth = field.nth;
+
+    if nth == 0 {
+      quote! {
+        #[inline]
+        #visibility fn #field_name(&self) -> Option<OreqlSyntaxNode> {
+          self.node.first_child_of_kind(self.tree, OreqlSyntaxKind::#child_kind)
+        }
+      }
+    } else {
+      quote! {
+        #[inline]
+        #visibility fn #field_name(&self) -> Option<OreqlSyntaxNode> {
+          self.node.nth_child_of_kind(self.tree, OreqlSyntaxKind::#child_kind, #nth)
+        }
+      }
+    }
+  })
 }

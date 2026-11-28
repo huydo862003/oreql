@@ -1,6 +1,6 @@
 mod context;
 
-use crate::{GreenTree, OreqlString, OreqlStringPool, OreqlSyntaxKind};
+use crate::{OreqlString, OreqlStringPool, OreqlSyntaxKind, SyntaxTree};
 
 pub use context::ParserContext;
 pub use context::default_tokenizer_config;
@@ -13,7 +13,7 @@ use context::default_tokenizer_config::*;
 
 pub trait DialectParser: Sized {
   /* Entrypoint - Don't override */
-  fn parse<'a>(_string_pool: &'a OreqlStringPool<'a>) -> GreenTree {
+  fn parse<'a>(_string_pool: &'a OreqlStringPool<'a>) -> SyntaxTree {
     unimplemented!()
   }
 

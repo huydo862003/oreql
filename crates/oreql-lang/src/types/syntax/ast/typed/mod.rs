@@ -1,16 +1,18 @@
 use super::OreqlSyntaxKind;
-use super::red::{OreqlRedNode, OreqlRedTree};
+#[cfg(test)]
+use super::syntax::SyntaxTreeBuilder;
+use super::syntax::{OreqlSyntaxNode, SyntaxTree};
 
 /// Trait for typed AST node wrappers
 pub trait AstNode<'a>: Sized + Copy {
-  /// Try to cast a red node to this typed node
-  fn cast(node: OreqlRedNode, tree: &'a OreqlRedTree) -> Option<Self>;
+  /// Try to cast a syntax node to this typed node
+  fn cast(node: OreqlSyntaxNode, tree: &'a SyntaxTree) -> Option<Self>;
 
-  /// Underlying red node
-  fn syntax(&self) -> OreqlRedNode;
+  /// Underlying syntax node
+  fn syntax(&self) -> OreqlSyntaxNode;
 
-  /// The red tree this node belongs to
-  fn tree(&self) -> &'a OreqlRedTree;
+  /// The syntax tree this node belongs to
+  fn tree(&self) -> &'a SyntaxTree;
 }
 
 // Group nodes
@@ -400,12 +402,11 @@ pub struct DataType {
 mod tests {
   use super::*;
   use crate::types::TextRange;
-  use crate::types::syntax::ast::green::GreenTreeBuilder;
 
   /// Cast root to typed node and access children
   #[test]
   fn select_statement_typed_access() {
-    let mut builder = GreenTreeBuilder::new();
+    let mut builder = SyntaxTreeBuilder::new();
     builder.start_node(OreqlSyntaxKind::SelectStatement);
     builder.start_node(OreqlSyntaxKind::SelectClause);
     builder.push_token(
@@ -435,9 +436,9 @@ mod tests {
     );
     builder.finish_node(OreqlSyntaxKind::WhereClause);
     builder.finish_node(OreqlSyntaxKind::SelectStatement);
-    let tree = OreqlRedTree::new(builder.finish());
+    let tree = builder.finish();
 
-    let root = tree.root();
+    let root = tree.root;
     let select = SelectStatement::cast(root, &tree).unwrap();
 
     assert!(select.select_clause().is_some());
@@ -449,12 +450,12 @@ mod tests {
   /// Cast fails for wrong kind
   #[test]
   fn cast_wrong_kind_returns_none() {
-    let mut builder = GreenTreeBuilder::new();
+    let mut builder = SyntaxTreeBuilder::new();
     builder.start_node(OreqlSyntaxKind::InsertStatement);
     builder.finish_node(OreqlSyntaxKind::InsertStatement);
-    let tree = OreqlRedTree::new(builder.finish());
+    let tree = builder.finish();
 
-    let root = tree.root();
+    let root = tree.root;
     assert!(SelectStatement::cast(root, &tree).is_none());
     assert!(InsertStatement::cast(root, &tree).is_some());
   }
@@ -462,12 +463,12 @@ mod tests {
   /// Group node casts using predicate
   #[test]
   fn group_node_cast() {
-    let mut builder = GreenTreeBuilder::new();
+    let mut builder = SyntaxTreeBuilder::new();
     builder.start_node(OreqlSyntaxKind::SelectStatement);
     builder.finish_node(OreqlSyntaxKind::SelectStatement);
-    let tree = OreqlRedTree::new(builder.finish());
+    let tree = builder.finish();
 
-    let root = tree.root();
+    let root = tree.root;
     assert!(Statement::cast(root, &tree).is_some());
     assert!(DmlStatement::cast(root, &tree).is_some());
     assert!(Expression::cast(root, &tree).is_none());

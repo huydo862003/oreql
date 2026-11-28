@@ -3,8 +3,7 @@ mod string_pool;
 
 pub use ast::typed;
 pub use ast::{
-  AstNode, ChildrenRange, GreenNodeChildrenIter, GreenNodeData, GreenTree, GreenTreeBuilder,
-  OreqlGreenNode, OreqlGreenNodeMultiArena, OreqlRedNode, OreqlRedNodeMultiArena, OreqlRedTree,
-  OreqlSyntaxKind, RedNodeChildrenIterator,
+  AstNode, ChildrenSpan, OreqlSyntaxKind, OreqlSyntaxNode, OreqlSyntaxNodeMultiArena,
+  SyntaxNodeChildrenIterator, SyntaxNodeData, SyntaxTree, SyntaxTreeBuilder,
 };
 pub use string_pool::{OreqlString, OreqlStringPool};

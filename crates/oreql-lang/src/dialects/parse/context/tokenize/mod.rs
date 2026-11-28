@@ -13,6 +13,17 @@ pub struct PeekResult {
   pub(crate) pending_diagnostics: Vec<OreqlDiagnostic>,
 }
 
+/// Result of peeking past trivia to the next significant token
+#[allow(dead_code)]
+pub struct PeekSignificantResult {
+  /// The significant (non-trivia) token
+  pub kind: OreqlSyntaxKind,
+  pub string: OreqlString,
+  /// Trivia tokens scanned before the significant token
+  pub leading_trivia: Vec<(OreqlSyntaxKind, OreqlString)>,
+  pub(crate) pending_diagnostics: Vec<OreqlDiagnostic>,
+}
+
 impl<D: DialectParser> ParserContext<'_, D> {
   /// Peek the next token without consuming it
   #[inline]
@@ -26,6 +37,30 @@ impl<D: DialectParser> ParserContext<'_, D> {
       kind,
       string,
       pending_diagnostics,
+    }
+  }
+
+  /// Returns the significant token plus any leading trivia scanned
+  #[inline]
+  pub fn peek_next_significant_token(&mut self, config: &TokenizeConfig) -> PeekSignificantResult {
+    let saved_offset = self.current_byte_offset;
+    let diagnostics_before = self.diagnostics.len();
+    let mut leading_trivia = Vec::new();
+
+    loop {
+      let (kind, string) = self.scan_next_token(config);
+      if kind.is_trivia() {
+        leading_trivia.push((kind, string));
+        continue;
+      }
+      let pending_diagnostics = self.diagnostics.drain(diagnostics_before..).collect();
+      self.current_byte_offset = saved_offset;
+      return PeekSignificantResult {
+        kind,
+        string,
+        leading_trivia,
+        pending_diagnostics,
+      };
     }
   }
 
@@ -349,8 +384,7 @@ impl<D: DialectParser> ParserContext<'_, D> {
       upper_buf[index] = byte.to_ascii_uppercase();
     }
 
-    // Try compound keywords: if first word is a prefix, try extending
-    // with spaces + more words (e.g. GROUP BY, ORDER BY, PRIMARY KEY)
+    // Try compound keywords: if first word is a prefix, try extending with spaces + more words (e.g. GROUP BY, ORDER BY, PRIMARY KEY)
     let mut best_kind = keywords.get(&upper_buf[..upper_len]);
     let mut best_end = first_word_end;
 
