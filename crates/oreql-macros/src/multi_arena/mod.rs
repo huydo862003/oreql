@@ -261,6 +261,25 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
         self.length = 0;
       }
 
+      /// Truncate to a previous length
+      ///
+      /// Drops elements beyond `new_length`
+      #visibility fn truncate(&mut self, new_length: u32) {
+        assert!(new_length <= self.length, "truncate length exceeds current length");
+        if new_length < self.length {
+          self.drop_range(new_length, self.length);
+          self.length = new_length;
+        }
+      }
+
+      /// Save the current position and return an RAII guard
+      ///
+      /// When dropped, the arena truncates back to the saved position
+      #visibility fn scratch_space(&mut self) -> ScratchGuard<'_> {
+        let saved = self.length;
+        ScratchGuard { arena: self, saved_length: saved }
+      }
+
       #(#arena_field_methods)*
 
       fn realloc_to(&mut self, new_capacity: u32) {
@@ -287,6 +306,29 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
 
     unsafe impl Send for #arena_name where #(#field_types: Send),* {}
     unsafe impl Sync for #arena_name where #(#field_types: Sync),* {}
+
+    /// RAII guard that truncates the arena to a saved position on drop
+    #visibility struct ScratchGuard<'arena> {
+      arena: &'arena mut #arena_name,
+      saved_length: u32,
+    }
+
+    impl ::core::ops::Deref for ScratchGuard<'_> {
+      type Target = #arena_name;
+      #[inline]
+      fn deref(&self) -> &Self::Target { self.arena }
+    }
+
+    impl ::core::ops::DerefMut for ScratchGuard<'_> {
+      #[inline]
+      fn deref_mut(&mut self) -> &mut Self::Target { self.arena }
+    }
+
+    impl Drop for ScratchGuard<'_> {
+      fn drop(&mut self) {
+        self.arena.truncate(self.saved_length);
+      }
+    }
   }
   .into()
 }

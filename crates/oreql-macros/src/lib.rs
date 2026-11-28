@@ -1,3 +1,4 @@
+mod diagnostic;
 mod dialect_config;
 mod multi_arena;
 mod syntax_kinds;
@@ -51,6 +52,28 @@ pub fn define_syntax_kinds(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn define_multi_arena(input: TokenStream) -> TokenStream {
   multi_arena::define_multi_arena_impl(input)
+}
+
+/// Defines a diagnostic kind enum with `#[message]` attributes
+///
+/// Generates `code_str()` and `message()` methods for each variant
+///
+/// ```ignore
+/// #[oreql_macros::diagnostic_kind]
+/// pub enum DiagnosticKind {
+///   #[message("unterminated string literal")]
+///   UnterminatedString,
+///   #[message("unexpected character '{encountered}'")]
+///   UnexpectedChar { encountered: char },
+/// }
+///
+/// let diagnostic = DiagnosticKind::UnterminatedString;
+/// assert_eq!(diagnostic.code_str(), "unterminated-string");
+/// assert_eq!(diagnostic.message(), "unterminated string literal");
+/// ```
+#[proc_macro_attribute]
+pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
+  diagnostic::diagnostic_kind_impl(attr, item)
 }
 
 /// Declares typed dialect config wrappers with defaults
