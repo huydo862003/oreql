@@ -12,6 +12,7 @@ oreql_macros::define_multi_arena! {
     _parent: u32,
     _child_index: u32,
     _green: u32,
+    _kind: OreqlSyntaxKind, // Put here for locality
   }
 }
 
@@ -27,7 +28,8 @@ pub struct OreqlRedTree {
 impl OreqlRedTree {
   pub fn new(green: GreenTree) -> Self {
     let mut red = OreqlRedNodeMultiArena::new();
-    red.push(NO_PARENT, 0, green.root.index());
+    let root_kind = green.root.kind(&green.nodes);
+    red.push(NO_PARENT, 0, green.root.index(), root_kind);
     Self {
       green,
       red: UnsafeCell::new(red),
@@ -66,7 +68,7 @@ impl OreqlRedNode {
   /// Syntax kind
   #[inline]
   pub fn kind(self, tree: &OreqlRedTree) -> OreqlSyntaxKind {
-    self.green(tree).kind(tree.green_arena())
+    self._kind(tree.red_arena())
   }
 
   /// Text span
@@ -110,21 +112,30 @@ impl OreqlRedNode {
       red_arena.reserve(count as u32);
       let parent_red = self.index();
       let first_green = green_children.start();
+      // Read kinds from green arena before mutating red
+      let green_arena = tree.green_arena();
+      let kind_slice = green_arena.kind_slice();
       unsafe {
-        // Fill parent column (all same value -> vectorizable memset)
+        // Fill parent column (all same value)
         let parent_spare = &mut red_arena._parent_spare_slice_mut()[..count];
         for slot in parent_spare.iter_mut() {
           slot.write(parent_red);
         }
-        // Fill child_index column
+        // Fill child_index column (sequential 0..n)
         let child_index_spare = &mut red_arena._child_index_spare_slice_mut()[..count];
         for (position, slot) in child_index_spare.iter_mut().enumerate() {
           slot.write(position as u32);
         }
-        // Fill green column
+        // Fill green column (sequential first_green..first_green+n)
         let green_spare = &mut red_arena._green_spare_slice_mut()[..count];
         for (position, slot) in green_spare.iter_mut().enumerate() {
           slot.write(first_green + position as u32);
+        }
+        // Copy kind column from green arena
+        let kind_spare = &mut red_arena._kind_spare_slice_mut()[..count];
+        let green_kinds = &kind_slice[(first_green as usize)..(first_green as usize + count)];
+        for (slot, &green_kind) in kind_spare.iter_mut().zip(green_kinds.iter()) {
+          slot.write(green_kind);
         }
         red_arena.set_len(first_red + count as u32);
       }
@@ -177,26 +188,45 @@ impl OreqlRedNode {
   }
 
   /// First direct child with the given syntax kind
+  ///
+  /// Scans the red kind column directly (no green indirection)
   #[inline]
   pub fn first_child_of_kind(
     self,
     tree: &OreqlRedTree,
     kind: OreqlSyntaxKind,
   ) -> Option<OreqlRedNode> {
-    self.children(tree).find(|child| child.kind(tree) == kind)
+    let children = self.children(tree);
+    let kind_slice = tree.red_arena()._kind_slice();
+    for index in children.current_offset..children.end_offset {
+      if kind_slice[index as usize] == kind {
+        return Some(OreqlRedNode::from_index(index));
+      }
+    }
+    None
   }
 
   /// Nth direct child with the given syntax kind (0-indexed)
+  ///
+  /// Scans the red kind column directly (no green indirection)
   pub fn nth_child_of_kind(
     self,
     tree: &OreqlRedTree,
     kind: OreqlSyntaxKind,
     index: usize,
   ) -> Option<OreqlRedNode> {
-    self
-      .children(tree)
-      .filter(|child| child.kind(tree) == kind)
-      .nth(index)
+    let children = self.children(tree);
+    let kind_slice = tree.red_arena()._kind_slice();
+    let mut count = 0;
+    for red_index in children.current_offset..children.end_offset {
+      if kind_slice[red_index as usize] == kind {
+        if count == index {
+          return Some(OreqlRedNode::from_index(red_index));
+        }
+        count += 1;
+      }
+    }
+    None
   }
 
   /// Whether this is a token (leaf)
