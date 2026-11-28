@@ -1,4 +1,16 @@
-oreql_macros::define_syntax_kinds! {
+/// Trait for typed AST node wrappers
+pub trait AstNode<'a>: Sized + Copy {
+  /// Try to cast a syntax node to this typed node
+  fn cast(node: crate::OreqlSyntaxNode, tree: &'a crate::SyntaxTree) -> Option<Self>;
+
+  /// Underlying syntax node
+  fn syntax(&self) -> crate::OreqlSyntaxNode;
+
+  /// The syntax tree this node belongs to
+  fn tree(&self) -> &'a crate::SyntaxTree;
+}
+
+oreql_macros::define_syntax_variant! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
   #[repr(u16)]
   pub enum OreqlSyntaxKind {
@@ -680,15 +692,52 @@ oreql_macros::define_syntax_kinds! {
         // Data manipulation: SELECT, INSERT, UPDATE, DELETE, MERGE
         group is_dml_statement {
           // SELECT ...
-          SelectStatement,
+          SelectStatement {
+            with_clause: Option<WithClause>,
+            select_clause: SelectClause,
+            from_clause: Option<FromClause>,
+            where_clause: Option<WhereClause>,
+            group_by_clause: Option<GroupByClause>,
+            having_clause: Option<HavingClause>,
+            window_clause: Option<WindowClause>,
+            qualify_clause: Option<QualifyClause>,
+            order_by_clause: Option<OrderByClause>,
+            limit_clause: Option<LimitClause>,
+            offset_clause: Option<OffsetClause>,
+            fetch_clause: Option<FetchClause>,
+            for_update_clause: Option<ForUpdateClause>,
+          },
           // INSERT INTO ... VALUES ...
-          InsertStatement,
+          InsertStatement {
+            into_clause: Option<IntoClause>,
+            select_clause: Option<SelectClause>,
+            values_clause: Option<ValuesClause>,
+            returning_clause: Option<ReturningClause>,
+            on_conflict_clause: Option<OnConflictClause>,
+            on_duplicate_key_clause: Option<OnDuplicateKeyClause>,
+          },
           // UPDATE ... SET ...
-          UpdateStatement,
+          UpdateStatement {
+            set_clause: SetClause,
+            from_clause: Option<FromClause>,
+            where_clause: Option<WhereClause>,
+            order_by_clause: Option<OrderByClause>,
+            limit_clause: Option<LimitClause>,
+            returning_clause: Option<ReturningClause>,
+          },
           // DELETE FROM ...
-          DeleteStatement,
+          DeleteStatement {
+            from_clause: Option<FromClause>,
+            where_clause: Option<WhereClause>,
+            order_by_clause: Option<OrderByClause>,
+            limit_clause: Option<LimitClause>,
+            returning_clause: Option<ReturningClause>,
+          },
           // MERGE INTO ...
-          MergeStatement,
+          MergeStatement {
+            merge_when_clause: Option<MergeWhenClause>,
+            merge_insert_clause: Option<MergeInsertClause>,
+          },
         }
 
         // Data definition: CREATE, ALTER, DROP, TRUNCATE
@@ -847,23 +896,36 @@ oreql_macros::define_syntax_kinds! {
         // col IS NULL, col IS DISTINCT FROM val
         IsExpression,
         // col LIKE 'pattern'
-        LikeExpression,
+        LikeExpression {
+          keyword_escape: Option<KeywordEscape>,
+        },
         // col ILIKE 'pattern'
-        IlikeExpression,
+        IlikeExpression {
+          keyword_escape: Option<KeywordEscape>,
+        },
         // col RLIKE 'pattern'
         RlikeExpression,
         // col SIMILAR TO 'pattern'
-        SimilarToExpression,
+        SimilarToExpression {
+          keyword_escape: Option<KeywordEscape>,
+        },
         // col GLOB 'pattern'
         GlobExpression,
         // (a, b) OVERLAPS (c, d)
         OverlapsExpression,
         // CASE WHEN ... THEN ... END
-        CaseExpression,
+        CaseExpression {
+          keyword_case: KeywordCase,
+          keyword_end: KeywordEnd,
+        },
         // CAST(x AS INT)
-        CastExpression,
+        CastExpression {
+          data_type: DataType,
+        },
         // TRY_CAST(x AS INT)
-        TryCastExpression,
+        TryCastExpression {
+          data_type: DataType,
+        },
         // EXISTS (SELECT ...)
         ExistsExpression,
         // (SELECT ...)
@@ -877,7 +939,9 @@ oreql_macros::define_syntax_kinds! {
         // table.*
         QualifiedStarExpression,
         // :: type cast
-        TypeCastExpression,
+        TypeCastExpression {
+          data_type: DataType,
+        },
         // placeholder: ?, $1, :name
         PlaceholderExpression,
         // x -> x + 1
@@ -892,17 +956,42 @@ oreql_macros::define_syntax_kinds! {
         MapExpression,
         // STRUCT(1 AS a, 2 AS b)
         StructExpression,
-        // JSON path: $.key
-        JsonPathExpression,
+        // JSON path expressions
+        group is_json_path {
+          // Complete JSON path: $.store.book[0].title
+          JsonPathExpression,
+          // $ (root)
+          JsonPathRoot,
+          // .key
+          JsonPathKey,
+          // ..key (recursive descent)
+          JsonPathRecursive,
+          // [index]
+          JsonPathSubscript,
+          // [start:end]
+          JsonPathSlice,
+          // [*] or .*
+          JsonPathWildcard,
+          // [?(expr)]
+          JsonPathFilter,
+          // [expr1, expr2]
+          JsonPathUnion,
+        }
 
         // Expressions modified by a qualifier (keyword syntax)
         group is_qualified_expression {
           // expr AS name
-          AliasExpression,
+          AliasExpression {
+            keyword_as: Option<KeywordAs>,
+          },
           // fn() FILTER (WHERE ...)
-          FilterExpression,
+          FilterExpression {
+            where_clause: Option<WhereClause>,
+          },
           // fn() WITHIN GROUP (ORDER BY ...)
-          WithinGroupExpression,
+          WithinGroupExpression {
+            order_by_clause: Option<OrderByClause>,
+          },
           // _utf8 'hello' (charset introducer)
           IntroducerExpression,
           // expr COLLATE utf8mb4
@@ -918,7 +1007,9 @@ oreql_macros::define_syntax_kinds! {
           // IF(cond, true, false)
           IfExpression,
           // CONVERT(expr, type) or CONVERT(expr USING charset)
-          ConvertExpression,
+          ConvertExpression {
+            data_type: Option<DataType>,
+          },
           // EXTRACT(YEAR FROM date)
           ExtractExpression,
           // SUBSTRING(str FROM 1 FOR 3)
@@ -944,7 +1035,9 @@ oreql_macros::define_syntax_kinds! {
           // COUNT(DISTINCT x)
           AggregateFunctionCall,
           // ROW_NUMBER() OVER (...)
-          WindowFunctionCall,
+          WindowFunctionCall {
+            window_specification: Option<WindowSpecification>,
+          },
         }
 
         // Literal values
@@ -987,7 +1080,10 @@ oreql_macros::define_syntax_kinds! {
       // Table expressions: produce a table, not a scalar value
       group is_table_expression {
         // ... JOIN ... ON ...
-        JoinExpression,
+        JoinExpression {
+          join_on_clause: Option<JoinOnClause>,
+          join_using_clause: Option<JoinUsingClause>,
+        },
         // LATERAL (...)
         LateralExpression,
         // UNNEST(array)
@@ -1023,9 +1119,13 @@ oreql_macros::define_syntax_kinds! {
       // DDL structural nodes
       group is_ddl_node {
         // col INT NOT NULL
-        ColumnDefinition,
+        ColumnDefinition {
+          data_type: Option<DataType>,
+        },
         // INT, VARCHAR(255)
-        DataType,
+        DataType {
+          data_type_parameter: Option<DataTypeParameter>,
+        },
         // INT(11), DECIMAL(10, 2) - type parameters
         DataTypeParameter,
         // INDEX idx_name (col1, col2)
@@ -1121,7 +1221,11 @@ oreql_macros::define_syntax_kinds! {
       // Structural modifiers attached to expressions
       group is_qualifier {
         // OVER (PARTITION BY a ORDER BY b ...)
-        WindowSpecification,
+        WindowSpecification {
+          partition_by_clause: Option<PartitionByClause>,
+          order_by_clause: Option<OrderByClause>,
+          window_frame: Option<WindowFrame>,
+        },
         // ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         WindowFrame,
         // UNBOUNDED PRECEDING, CURRENT ROW, 5 FOLLOWING
@@ -1143,5 +1247,83 @@ oreql_macros::define_syntax_kinds! {
         ErrorNode,
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::types::TextRange;
+  use crate::types::syntax::ast::syntax::SyntaxTreeBuilder;
+
+  /// Cast root to typed node and access children
+  #[test]
+  fn select_statement_typed_access() {
+    let mut builder = SyntaxTreeBuilder::new();
+    builder.start_node(OreqlSyntaxKind::SelectStatement);
+    builder.start_node(OreqlSyntaxKind::SelectClause);
+    builder.push_token(
+      OreqlSyntaxKind::KeywordSelect,
+      TextRange {
+        start_byte_offset: 0,
+        end_byte_offset: 6,
+      },
+    );
+    builder.finish_node(OreqlSyntaxKind::SelectClause);
+    builder.start_node(OreqlSyntaxKind::FromClause);
+    builder.push_token(
+      OreqlSyntaxKind::KeywordFrom,
+      TextRange {
+        start_byte_offset: 7,
+        end_byte_offset: 11,
+      },
+    );
+    builder.finish_node(OreqlSyntaxKind::FromClause);
+    builder.start_node(OreqlSyntaxKind::WhereClause);
+    builder.push_token(
+      OreqlSyntaxKind::KeywordWhere,
+      TextRange {
+        start_byte_offset: 14,
+        end_byte_offset: 19,
+      },
+    );
+    builder.finish_node(OreqlSyntaxKind::WhereClause);
+    builder.finish_node(OreqlSyntaxKind::SelectStatement);
+    let tree = builder.finish();
+
+    let root = tree.root;
+    let select = SelectStatement::cast(root, &tree).unwrap();
+
+    assert!(select.select_clause().is_some());
+    assert!(select.from_clause().is_some());
+    assert!(select.where_clause().is_some());
+    assert!(select.having_clause().is_none());
+  }
+
+  /// Cast fails for wrong kind
+  #[test]
+  fn cast_wrong_kind_returns_none() {
+    let mut builder = SyntaxTreeBuilder::new();
+    builder.start_node(OreqlSyntaxKind::InsertStatement);
+    builder.finish_node(OreqlSyntaxKind::InsertStatement);
+    let tree = builder.finish();
+
+    let root = tree.root;
+    assert!(SelectStatement::cast(root, &tree).is_none());
+    assert!(InsertStatement::cast(root, &tree).is_some());
+  }
+
+  /// Group node casts using predicate
+  #[test]
+  fn group_node_cast() {
+    let mut builder = SyntaxTreeBuilder::new();
+    builder.start_node(OreqlSyntaxKind::SelectStatement);
+    builder.finish_node(OreqlSyntaxKind::SelectStatement);
+    let tree = builder.finish();
+
+    let root = tree.root;
+    assert!(Statement::cast(root, &tree).is_some());
+    assert!(DmlStatement::cast(root, &tree).is_some());
+    assert!(Expression::cast(root, &tree).is_none());
   }
 }

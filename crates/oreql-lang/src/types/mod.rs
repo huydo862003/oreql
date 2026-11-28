@@ -3,7 +3,6 @@ mod syntax;
 mod text_range;
 
 pub use diagnostic::{OreqlDiagnostic, OreqlDiagnosticKind, OreqlDiagnosticSeverity};
-pub use syntax::typed;
 pub use syntax::{
   AstNode, ChildrenSpan, OreqlSyntaxKind, OreqlSyntaxNode, OreqlSyntaxNodeMultiArena,
   SyntaxNodeChildrenIterator, SyntaxNodeData, SyntaxTree, SyntaxTreeBuilder,

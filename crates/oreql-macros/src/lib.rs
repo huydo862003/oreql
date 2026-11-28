@@ -1,36 +1,10 @@
-mod ast_node;
+mod define_syntax_variant;
 mod diagnostic;
 mod dialect_config;
 mod multi_arena;
-mod syntax_kinds;
 mod utils;
 
 use proc_macro::TokenStream;
-
-/// Defines a syntax kind enum with nested group support
-/// ```ignore
-/// define_syntax_kinds! {
-///   #[repr(u16)]
-///   pub enum SyntaxKind {
-///     group is_token {
-///       group is_trivia {
-///         Whitespace,
-///         Newline,
-///       }
-///       Eof,
-///     }
-///     group is_node {
-///       group is_statement {
-///         Program,
-///       }
-///     }
-///   }
-/// }
-/// ```
-#[proc_macro]
-pub fn define_syntax_kinds(input: TokenStream) -> TokenStream {
-  syntax_kinds::define_syntax_kinds_impl(input)
-}
 
 /// Defines a node handle and its corresponding SOA arena
 ///
@@ -71,36 +45,32 @@ pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
   diagnostic::diagnostic_kind_impl(attr, item)
 }
 
-/// Defines a typed AST node for a single SyntaxKind variant
-///
-/// Struct name must match the SyntaxKind variant exactly.
-/// Fields declare child accessors using SyntaxKind variant names.
+/// Unified syntax definition: enum + typed AST + groups in one macro
 ///
 /// ```ignore
-/// #[oreql_macros::ast_node]
-/// pub struct SelectStatement {
-///   select_clause: SelectClause,
-///   from_clause: FromClause,
+/// define_syntax_variant! {
+///   #[repr(u16)]
+///   pub enum SyntaxKind {
+///     group token {
+///       Whitespace,
+///       Number,
+///     }
+///     group node {
+///       group statement {
+///         SelectStatement {
+///           from_clause: Option<FromClause>,
+///         },
+///       }
+///       group clause {
+///         FromClause,
+///       }
+///     }
+///   }
 /// }
 /// ```
-#[proc_macro_attribute]
-pub fn ast_node(attr: TokenStream, item: TokenStream) -> TokenStream {
-  ast_node::ast_node_impl(attr, item)
-}
-
-/// Defines a typed AST node for a SyntaxKind group
-///
-/// ```ignore
-/// #[oreql_macros::ast_group(is_expression)]
-/// pub struct Expression {}
-///
-/// // Generates Expression<'a> with:
-/// // - AstNode impl (cast using kind.is_expression())
-/// // - TryFrom<(OreqlRedNode, &OreqlRedTree)>
-/// ```
-#[proc_macro_attribute]
-pub fn ast_group(attr: TokenStream, item: TokenStream) -> TokenStream {
-  ast_node::ast_group_impl(attr, item)
+#[proc_macro]
+pub fn define_syntax_variant(input: TokenStream) -> TokenStream {
+  define_syntax_variant::define_syntax_variant_impl(input)
 }
 
 /// Declares typed dialect config wrappers with defaults
