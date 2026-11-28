@@ -100,24 +100,38 @@ impl OreqlRedNode {
   }
 
   /// Iterator over direct children
-  ///
-  /// Eagerly pushes all children into the red arena, then returns an iterator over the contiguous range
   #[inline]
   pub fn children(self, tree: &OreqlRedTree) -> RedNodeChildrenIterator {
     let green_children = self.green(tree).children(tree.green_arena());
-    let count = green_children.len() as u32;
+    let count = green_children.len();
     let red_arena = tree.red_arena_mut();
     let first_red = red_arena.len();
     if count > 0 {
-      red_arena.reserve(count);
+      red_arena.reserve(count as u32);
       let parent_red = self.index();
-      for (position, green_child) in green_children.enumerate() {
-        red_arena.push(parent_red, position as u32, green_child.index());
+      let first_green = green_children.start();
+      unsafe {
+        // Fill parent column (all same value -> vectorizable memset)
+        let parent_spare = &mut red_arena._parent_spare_slice_mut()[..count];
+        for slot in parent_spare.iter_mut() {
+          slot.write(parent_red);
+        }
+        // Fill child_index column
+        let child_index_spare = &mut red_arena._child_index_spare_slice_mut()[..count];
+        for (position, slot) in child_index_spare.iter_mut().enumerate() {
+          slot.write(position as u32);
+        }
+        // Fill green column
+        let green_spare = &mut red_arena._green_spare_slice_mut()[..count];
+        for (position, slot) in green_spare.iter_mut().enumerate() {
+          slot.write(first_green + position as u32);
+        }
+        red_arena.set_len(first_red + count as u32);
       }
     }
     RedNodeChildrenIterator {
       current_offset: first_red,
-      end_offset: first_red + count,
+      end_offset: first_red + count as u32,
     }
   }
 
@@ -160,6 +174,29 @@ impl OreqlRedNode {
     }
     let parent = self.parent(tree)?;
     parent.nth_child(tree, position as usize - 1)
+  }
+
+  /// First direct child with the given syntax kind
+  #[inline]
+  pub fn first_child_of_kind(
+    self,
+    tree: &OreqlRedTree,
+    kind: OreqlSyntaxKind,
+  ) -> Option<OreqlRedNode> {
+    self.children(tree).find(|child| child.kind(tree) == kind)
+  }
+
+  /// Nth direct child with the given syntax kind (0-indexed)
+  pub fn nth_child_of_kind(
+    self,
+    tree: &OreqlRedTree,
+    kind: OreqlSyntaxKind,
+    index: usize,
+  ) -> Option<OreqlRedNode> {
+    self
+      .children(tree)
+      .filter(|child| child.kind(tree) == kind)
+      .nth(index)
   }
 
   /// Whether this is a token (leaf)

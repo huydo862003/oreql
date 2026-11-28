@@ -99,6 +99,14 @@ pub struct GreenNodeChildrenIter {
   end: u32,
 }
 
+impl GreenNodeChildrenIter {
+  /// Starting green index of the children range
+  #[inline]
+  pub fn start(&self) -> u32 {
+    self.current
+  }
+}
+
 impl Iterator for GreenNodeChildrenIter {
   type Item = OreqlGreenNode;
 

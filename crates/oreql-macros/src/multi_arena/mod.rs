@@ -15,6 +15,7 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
 
   let field_names: Vec<_> = input.fields.iter().map(|field| &field.name).collect();
   let field_types: Vec<_> = input.fields.iter().map(|field| &field.field_type).collect();
+  let first_field_name = &input.fields[0].name;
 
   // Generate per-field methods on the handle
   let handle_field_methods = input.fields.iter().map(|field| {
@@ -58,6 +59,7 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
     let set_name = format_ident!("set_{}", field_name);
     let slice_name = format_ident!("{}_slice", field_name);
     let slice_mut_name = format_ident!("{}_slice_mut", field_name);
+    let spare_slice_mut_name = format_ident!("{}_spare_slice_mut", field_name);
 
     quote! {
       /// Read a value by node handle
@@ -96,6 +98,24 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
       #visibility fn #slice_mut_name(&mut self) -> &mut [#field_type] {
         if self.length == 0 { return &mut []; }
         unsafe { ::core::slice::from_raw_parts_mut(self.#field_name.as_ptr(), self.length as usize) }
+      }
+
+      /// Mutable slice of spare capacity (between length and capacity)
+      ///
+      /// # Safety
+      ///
+      /// Contents are uninitialized. Caller must initialize before
+      /// calling set_len to include these entries.
+      #[inline]
+      #visibility unsafe fn #spare_slice_mut_name(&mut self) -> &mut [::core::mem::MaybeUninit<#field_type>] {
+        let start = self.length as usize;
+        let spare = (self.capacity - self.length) as usize;
+        unsafe {
+          ::core::slice::from_raw_parts_mut(
+            self.#field_name.as_ptr().add(start) as *mut ::core::mem::MaybeUninit<#field_type>,
+            spare,
+          )
+        }
       }
     }
   });
@@ -151,6 +171,45 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
       ::core::ptr::write(self.#field_name.as_ptr().add(index as usize), #field_name);
     }
   });
+
+  // Generate extend_from_slices params and body
+  let extend_params: Vec<_> = input
+    .fields
+    .iter()
+    .map(|field| {
+      let field_name = &field.name;
+      let field_type = &field.field_type;
+      quote! { #field_name: &[#field_type] }
+    })
+    .collect();
+
+  let extend_asserts: Vec<_> = input
+    .fields
+    .iter()
+    .skip(1)
+    .map(|field| {
+      let field_name = &field.name;
+      let first_name = &input.fields[0].name;
+      quote! {
+        assert_eq!(#field_name.len(), #first_name.len(), "all slices must have the same length");
+      }
+    })
+    .collect();
+
+  let extend_copies: Vec<_> = input
+    .fields
+    .iter()
+    .map(|field| {
+      let field_name = &field.name;
+      quote! {
+        ::core::ptr::copy_nonoverlapping(
+          #field_name.as_ptr(),
+          self.#field_name.as_ptr().add(start as usize),
+          count,
+        );
+      }
+    })
+    .collect();
 
   quote! {
     #(#attrs)*
@@ -255,6 +314,33 @@ pub fn define_multi_arena_impl(input: TokenStream) -> TokenStream {
         }
         self.length += 1;
         #name(index)
+      }
+
+      /// Batch-push rows from per-column slices
+      ///
+      /// All slices must have the same length
+      /// Returns the handle of the first pushed row
+      #visibility fn extend_from_slices(&mut self, #(#extend_params),*) -> #name {
+        let count = #first_field_name.len();
+        #(#extend_asserts)*
+        self.reserve(count as u32);
+        let start = self.length;
+        unsafe {
+          #(#extend_copies)*
+        }
+        self.length += count as u32;
+        #name(start)
+      }
+
+      /// Set length without bounds checking
+      ///
+      /// # Safety
+      ///
+      /// New length must be <= capacity, and all entries up to new_length must be initialized
+      #[inline]
+      #visibility unsafe fn set_len(&mut self, new_length: u32) {
+        debug_assert!(new_length <= self.capacity, "set_len exceeds capacity");
+        self.length = new_length;
       }
 
       /// Reset length to zero without deallocating
