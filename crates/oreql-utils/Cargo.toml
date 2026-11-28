@@ -4,6 +4,5 @@ version.workspace = true
 edition = "2024"
 
 [dependencies]
-paste = "1"
 
 [dev-dependencies]

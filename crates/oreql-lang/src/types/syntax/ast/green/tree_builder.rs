@@ -63,3 +63,9 @@ impl GreenTreeBuilder {
     }
   }
 }
+
+impl Default for GreenTreeBuilder {
+  fn default() -> Self {
+    Self::new()
+  }
+}

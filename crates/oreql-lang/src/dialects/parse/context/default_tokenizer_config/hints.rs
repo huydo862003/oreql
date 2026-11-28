@@ -1,14 +1,18 @@
 use crate::OreqlSyntaxKind;
 
-/// (start, end) delimiters for **hint** comments
-///
-/// e.g. `&[("/*+", "*/")]` for `/*+ hint */`
-pub const DEFAULT_HINT_COMMENT_DELIMITER_PATTERNS: &[(&str, &str)] = &[];
+oreql_macros::dialect_config! {
+  /// (start, end) delimiters for **hint** comments
+  ///
+  /// e.g. `&[("/*+", "*/")]` for `/*+ hint */`
+  pub struct HintCommentDelimitersConfig(&'static [(&'static str, &'static str)])
+    = &[];
 
-/// Token kinds that can appear before a hint comment
-pub const DEFAULT_HINT_PRECEDING_ALLOWED_TOKENS: &[OreqlSyntaxKind] = &[
-  OreqlSyntaxKind::KeywordSelect,
-  OreqlSyntaxKind::KeywordInsert,
-  OreqlSyntaxKind::KeywordUpdate,
-  OreqlSyntaxKind::KeywordDelete,
-];
+  /// Token kinds that can appear before a hint comment
+  pub struct HintPrecedingTokensConfig(&'static [OreqlSyntaxKind])
+    = &[
+      OreqlSyntaxKind::KeywordSelect,
+      OreqlSyntaxKind::KeywordInsert,
+      OreqlSyntaxKind::KeywordUpdate,
+      OreqlSyntaxKind::KeywordDelete,
+    ];
+}

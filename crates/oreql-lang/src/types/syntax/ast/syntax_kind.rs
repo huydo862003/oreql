@@ -111,6 +111,44 @@ oreql_macros::define_syntax_kinds! {
         Dollar,
         // !
         Exclamation,
+        // &<
+        AmpLt,
+        // &>
+        AmpGt,
+        // ??
+        DQuestion,
+        // ?::
+        QuestionDColon,
+        // ?&
+        QuestionAmp,
+        // ?|
+        QuestionPipe,
+        // ~*
+        TildeStar,
+        // |/
+        PipeSlash,
+        // ||/
+        DPipeSlash,
+        // ^@
+        CaretAt,
+        // .:
+        DotColon,
+        // .^
+        DotCaret,
+        // ::$
+        DColonDollar,
+        // ::%
+        DColonPercent,
+        // ::?
+        DColonQuestion,
+        // :>
+        ColonGt,
+        // !:>
+        ExclamationColonGt,
+        // #-
+        HashDash,
+        // -|-
+        Adjacent,
       }
 
       // Literal value tokens
@@ -595,7 +633,35 @@ oreql_macros::define_syntax_kinds! {
         KeywordXor,
         // ANALYZE
         KeywordAnalyze,
+        // ISNULL
+        KeywordIsnull,
+        // SETTINGS
+        KeywordSettings,
+        // SQL SECURITY
+        KeywordSqlSecurity,
+        // CLUSTER BY
+        KeywordClusterBy,
+        // LOCALTIME
+        KeywordLocaltime,
+        // LOCALTIMESTAMP
+        KeywordLocaltimestamp,
+        // NAMESPACE
+        KeywordNamespace,
+        // CURRENT_SCHEMA
+        KeywordCurrentSchema,
+        // CURRENT_CATALOG
+        KeywordCurrentCatalog,
+        // CURRENT_ROLE
+        KeywordCurrentRole,
+        // CURRENT_DATETIME
+        KeywordCurrentDatetime,
       }
+
+      // Jinja template tokens
+      // {%  {%+  {%-
+      JinjaBlockStart,
+      // %}  +%}  -%}
+      JinjaBlockEnd,
 
       // end of file
       Eof,

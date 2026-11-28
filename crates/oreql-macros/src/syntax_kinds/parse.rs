@@ -50,9 +50,7 @@ impl Parse for SyntaxKindEnumInput {
 fn is_group_next(input: ParseStream) -> bool {
   let fork = input.fork();
   let _ = fork.call(Attribute::parse_outer);
-  fork
-    .parse::<Ident>()
-    .map_or(false, |ident| ident == "group")
+  fork.parse::<Ident>().is_ok_and(|ident| ident == "group")
 }
 
 /// Parse a list of items (groups and variants) from braced content

@@ -1,3 +1,5 @@
+mod dialect_config;
+mod multi_arena;
 mod syntax_kinds;
 
 use proc_macro::TokenStream;
@@ -29,4 +31,48 @@ use proc_macro::TokenStream;
 #[proc_macro]
 pub fn define_syntax_kinds(input: TokenStream) -> TokenStream {
   syntax_kinds::define_syntax_kinds_impl(input)
+}
+
+/// Defines a node handle and its corresponding SOA arena
+///
+/// ```ignore
+/// define_multi_arena! {
+///   pub struct GreenNode {
+///     kind: u16,
+///     offset: u32,
+///   }
+/// }
+///
+/// // GreenNode(u32) handle, GreenNodeMultiArena SOA container
+/// let mut arena = GreenNodeMultiArena::new();
+/// let node = arena.push(42u16, 100u32);
+/// assert_eq!(node.kind(&arena), 42);
+/// ```
+#[proc_macro]
+pub fn define_multi_arena(input: TokenStream) -> TokenStream {
+  multi_arena::define_multi_arena_impl(input)
+}
+
+/// Declares typed dialect config wrappers with defaults
+///
+/// Each declaration generates a newtype with `Deref` to the
+/// inner type and a `::default()` that returns a lazily
+/// initialized static reference
+///
+/// ```ignore
+/// dialect_config! {
+///   pub struct KeywordsConfig(TrieMap<SyntaxKind>) =
+///     TrieMap::from_entries([(b"SELECT", KeywordSelect)]);
+///
+///   pub struct EscapeBytes(ByteLut<bool>) =
+///     ByteLut::new().set(b'\'', true);
+/// }
+///
+/// // Type-safe: can't pass EscapeBytes where KeywordsConfig is expected
+/// fn scan(keywords: &KeywordsConfig) { ... }
+/// scan(KeywordsConfig::default());
+/// ```
+#[proc_macro]
+pub fn dialect_config(input: TokenStream) -> TokenStream {
+  dialect_config::dialect_config_impl(input)
 }

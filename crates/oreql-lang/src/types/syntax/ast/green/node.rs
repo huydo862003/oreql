@@ -2,7 +2,7 @@ use crate::types::TextRange;
 
 use super::super::OreqlSyntaxKind;
 
-oreql_utils::define_multi_arena! {
+oreql_macros::define_multi_arena! {
   pub struct OreqlGreenNode {
     kind: OreqlSyntaxKind,
     data: GreenNodeData,

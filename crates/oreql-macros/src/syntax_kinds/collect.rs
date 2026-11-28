@@ -1,6 +1,6 @@
 use syn::{Attribute, Ident};
 
-use super::parse::{KindGroup, SyntaxKindItem};
+use super::parse::SyntaxKindItem;
 
 /// Recursively flatten all leaf variants for the enum body
 pub fn collect_syntax_variants(items: &[SyntaxKindItem], out: &mut Vec<(Vec<Attribute>, Ident)>) {

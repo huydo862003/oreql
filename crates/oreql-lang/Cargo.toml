@@ -50,6 +50,5 @@ tableau = []
 [dependencies]
 oreql-macros = { version = "0.1.0", path = "../oreql-macros" }
 oreql-utils = { version = "0.1.0", path = "../oreql-utils" }
-paste = "1"
 
 [dev-dependencies]
