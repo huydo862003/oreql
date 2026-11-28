@@ -38,6 +38,12 @@ impl<V: Copy> ByteLut<V> {
   }
 }
 
+impl<V: Copy> Default for ByteLut<V> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
