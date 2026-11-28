@@ -1,28 +1,37 @@
 /// Result of looking up a key in the trie
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TrieResult {
-  /// Key exists in the trie
-  Found,
+pub enum TrieResult<V: Copy> {
+  /// Key exists in the trie, with its value
+  Found(V),
   /// Key is a valid prefix but not a complete key
   Prefix,
   /// No path exists for this key
   NotFound,
 }
 
-/// A compact trie for byte string lookup
+/// A trie set with no associated values
+pub type TrieSet = TrieMap<()>;
+
+impl TrieSet {
+  /// Build a set trie from an iterator of byte string keys
+  pub fn from_keys<'a>(keys: impl IntoIterator<Item = &'a [u8]>) -> Self {
+    Self::from_entries(keys.into_iter().map(|key| (key, ())))
+  }
+}
+
+/// A compact trie mapping byte string keys to values
 ///
-/// Built once from a set of keys via `from_keys`
-pub struct Trie {
-  nodes: Vec<TrieNode>,
+/// Built once from key-value pairs via `from_entries`
+pub struct TrieMap<V: Copy> {
+  nodes: Vec<TrieNode<V>>,
   edges: Vec<TrieEdge>,
 }
 
-#[repr(C)]
 #[derive(Clone, Copy)]
-struct TrieNode {
+struct TrieNode<V: Copy> {
   edge_start: u32,
   edge_count: u16,
-  is_terminal: bool,
+  value: Option<V>,
 }
 
 #[repr(C)]
@@ -32,12 +41,12 @@ struct TrieEdge {
   target: u32,
 }
 
-impl Trie {
-  /// Build a trie from an iterator of byte string keys
-  pub fn from_keys<'a>(keys: impl IntoIterator<Item = &'a [u8]>) -> Self {
-    let mut build_nodes: Vec<(Vec<TrieEdge>, bool)> = vec![(Vec::new(), false)];
+impl<V: Copy> TrieMap<V> {
+  /// Build a trie from key-value pairs
+  pub fn from_entries<'a>(entries: impl IntoIterator<Item = (&'a [u8], V)>) -> Self {
+    let mut build_nodes: Vec<(Vec<TrieEdge>, Option<V>)> = vec![(Vec::new(), None)];
 
-    for key in keys {
+    for (key, value) in entries {
       let mut node_index = 0u32;
       for &byte in key {
         let children = &build_nodes[node_index as usize].0;
@@ -51,17 +60,17 @@ impl Trie {
             byte,
             target: new_index,
           });
-          build_nodes.push((Vec::new(), false));
+          build_nodes.push((Vec::new(), None));
           node_index = new_index;
         }
       }
-      build_nodes[node_index as usize].1 = true;
+      build_nodes[node_index as usize].1 = Some(value);
     }
 
     let mut nodes = Vec::with_capacity(build_nodes.len());
     let mut edges = Vec::new();
 
-    for (children, is_terminal) in &mut build_nodes {
+    for (children, value) in &mut build_nodes {
       let edge_start = edges.len() as u32;
       children.sort_unstable_by_key(|edge| edge.byte);
       let edge_count = children.len() as u16;
@@ -69,16 +78,16 @@ impl Trie {
       nodes.push(TrieNode {
         edge_start,
         edge_count,
-        is_terminal: *is_terminal,
+        value: *value,
       });
     }
 
-    Trie { nodes, edges }
+    TrieMap { nodes, edges }
   }
 
-  /// Look up a key
+  /// Look up a key, returning Found(value), Prefix, or NotFound
   #[inline]
-  pub fn lookup(&self, key: &[u8]) -> TrieResult {
+  pub fn lookup(&self, key: &[u8]) -> TrieResult<V> {
     let mut node_index = 0usize;
 
     for &byte in key {
@@ -88,11 +97,25 @@ impl Trie {
       }
     }
 
-    if unsafe { self.nodes.get_unchecked(node_index) }.is_terminal {
-      TrieResult::Found
-    } else {
-      TrieResult::Prefix
+    match unsafe { self.nodes.get_unchecked(node_index) }.value {
+      Some(value) => TrieResult::Found(value),
+      None => TrieResult::Prefix,
     }
+  }
+
+  /// Get the value for a key, or None
+  #[inline]
+  pub fn get(&self, key: &[u8]) -> Option<V> {
+    match self.lookup(key) {
+      TrieResult::Found(value) => Some(value),
+      _ => None,
+    }
+  }
+
+  /// Check if a key exists
+  #[inline]
+  pub fn contains(&self, key: &[u8]) -> bool {
+    matches!(self.lookup(key), TrieResult::Found(_))
   }
 
   #[inline]
@@ -125,18 +148,33 @@ impl Trie {
 mod tests {
   use super::*;
 
-  fn test_trie() -> Trie {
-    Trie::from_keys([&b"SELECT"[..], b"SET", b"FROM", b"WHERE", b"GROUP BY"])
+  fn test_trie() -> TrieMap<u16> {
+    TrieMap::from_entries([
+      (&b"SELECT"[..], 1u16),
+      (b"SET", 2),
+      (b"FROM", 3),
+      (b"WHERE", 4),
+      (b"GROUP BY", 5),
+    ])
   }
 
   #[test]
   fn found() {
     let trie = test_trie();
-    assert_eq!(trie.lookup(b"SELECT"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"SET"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"FROM"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"WHERE"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"GROUP BY"), TrieResult::Found);
+    assert_eq!(trie.lookup(b"SELECT"), TrieResult::Found(1));
+    assert_eq!(trie.lookup(b"SET"), TrieResult::Found(2));
+    assert_eq!(trie.lookup(b"FROM"), TrieResult::Found(3));
+    assert_eq!(trie.lookup(b"WHERE"), TrieResult::Found(4));
+    assert_eq!(trie.lookup(b"GROUP BY"), TrieResult::Found(5));
+  }
+
+  #[test]
+  fn get_value() {
+    let trie = test_trie();
+    assert_eq!(trie.get(b"SELECT"), Some(1));
+    assert_eq!(trie.get(b"FROM"), Some(3));
+    assert_eq!(trie.get(b"MISSING"), None);
+    assert_eq!(trie.get(b"SE"), None);
   }
 
   #[test]
@@ -159,15 +197,23 @@ mod tests {
   fn prefix_sharing() {
     let trie = test_trie();
     assert_eq!(trie.lookup(b"SE"), TrieResult::Prefix);
-    assert_eq!(trie.lookup(b"SET"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"SELECT"), TrieResult::Found);
+    assert_eq!(trie.lookup(b"SET"), TrieResult::Found(2));
+    assert_eq!(trie.lookup(b"SELECT"), TrieResult::Found(1));
   }
 
   #[test]
-  fn single_key() {
-    let trie = Trie::from_keys([&b"A"[..]]);
-    assert_eq!(trie.lookup(b"A"), TrieResult::Found);
-    assert_eq!(trie.lookup(b"B"), TrieResult::NotFound);
-    assert_eq!(trie.lookup(b"AB"), TrieResult::NotFound);
+  fn contains_check() {
+    let trie = test_trie();
+    assert!(trie.contains(b"SELECT"));
+    assert!(!trie.contains(b"SE"));
+    assert!(!trie.contains(b"INSERT"));
+  }
+
+  #[test]
+  fn single_entry() {
+    let trie = TrieMap::from_entries([(&b"A"[..], 42u16)]);
+    assert_eq!(trie.get(b"A"), Some(42));
+    assert_eq!(trie.get(b"B"), None);
+    assert_eq!(trie.get(b"AB"), None);
   }
 }
