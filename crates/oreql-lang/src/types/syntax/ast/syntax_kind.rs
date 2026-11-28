@@ -734,16 +734,34 @@ oreql_macros::define_syntax_kinds! {
         ShowStatement,
         // USE database
         UseStatement,
-        // EXECUTE proc
+        // EXECUTE/EXEC proc
         ExecuteStatement,
+        // CALL procedure(args)
+        CallStatement,
         // COPY ... INTO ...
         CopyStatement,
         // LOAD DATA ...
         LoadStatement,
-        // DESCRIBE table
+        // DESCRIBE/DESC table
         DescribeStatement,
         // PRAGMA ...
         PragmaStatement,
+        // ANALYZE TABLE t
+        AnalyzeStatement,
+        // COMMENT ON TABLE t IS 'text'
+        CommentStatement,
+        // REFRESH MATERIALIZED VIEW
+        RefreshStatement,
+        // LOCK TABLE t
+        LockStatement,
+        // VACUUM
+        VacuumStatement,
+        // KILL query_id
+        KillStatement,
+        // CACHE TABLE t
+        CacheStatement,
+        // UNCACHE TABLE t
+        UncacheStatement,
       }
 
       // Clauses: structural parts of statements
@@ -794,13 +812,33 @@ oreql_macros::define_syntax_kinds! {
         MergeInsertClause,
         // name AS (SELECT ...) inside WITH
         CommonTableExpressionClause,
+        // FOR UPDATE / FOR SHARE / FOR NO KEY UPDATE
+        ForUpdateClause,
+        // CONNECT BY PRIOR parent_id = id (Oracle)
+        ConnectByClause,
+        // START WITH id = 1 (Oracle)
+        StartWithClause,
+        // ON CONFLICT (col) DO UPDATE SET ...
+        OnConflictClause,
+        // ON DUPLICATE KEY UPDATE col = val (MySQL)
+        OnDuplicateKeyClause,
+        // SELECT * EXCEPT(col) (BigQuery)
+        SelectExceptClause,
+        // SELECT * REPLACE(expr AS col) (BigQuery)
+        SelectReplaceClause,
+        // MATCH_RECOGNIZE (...)
+        MatchRecognizeClause,
+        // SETTINGS key = val (ClickHouse)
+        SettingsClause,
+        // ELSE expr in CASE
+        ElseClause,
       }
 
       // Expressions: anything that produces a value
       group is_expression {
         // a + b, x AND y
         BinExpression,
-        // -x, NOT y
+        // -x, NOT y, PRIOR col
         UnaryExpression,
         // (expr)
         ParenExpression,
@@ -808,7 +846,7 @@ oreql_macros::define_syntax_kinds! {
         BetweenExpression,
         // col IN (1, 2, 3)
         InExpression,
-        // col IS NULL
+        // col IS NULL, col IS DISTINCT FROM val
         IsExpression,
         // col LIKE 'pattern'
         LikeExpression,
@@ -818,18 +856,16 @@ oreql_macros::define_syntax_kinds! {
         RlikeExpression,
         // col SIMILAR TO 'pattern'
         SimilarToExpression,
+        // col GLOB 'pattern'
+        GlobExpression,
+        // (a, b) OVERLAPS (c, d)
+        OverlapsExpression,
         // CASE WHEN ... THEN ... END
         CaseExpression,
         // CAST(x AS INT)
         CastExpression,
         // TRY_CAST(x AS INT)
         TryCastExpression,
-        // EXTRACT(YEAR FROM date)
-        ExtractExpression,
-        // SUBSTRING(str FROM 1 FOR 3)
-        SubstringExpression,
-        // TRIM(BOTH ' ' FROM str)
-        TrimExpression,
         // EXISTS (SELECT ...)
         ExistsExpression,
         // (SELECT ...)
@@ -854,10 +890,14 @@ oreql_macros::define_syntax_kinds! {
         RowExpression,
         // ARRAY[1, 2, 3]
         ArrayExpression,
+        // MAP { 'a': 1, 'b': 2 }
+        MapExpression,
+        // STRUCT(1 AS a, 2 AS b)
+        StructExpression,
         // JSON path: $.key
         JsonPathExpression,
 
-        // Expressions modified by a qualifier
+        // Expressions modified by a qualifier (keyword syntax)
         group is_qualified_expression {
           // expr AS name
           AliasExpression,
@@ -865,6 +905,38 @@ oreql_macros::define_syntax_kinds! {
           FilterExpression,
           // fn() WITHIN GROUP (ORDER BY ...)
           WithinGroupExpression,
+          // _utf8 'hello' (charset introducer)
+          IntroducerExpression,
+          // expr COLLATE utf8mb4
+          CollateExpression,
+          // expr AT TIME ZONE 'UTC'
+          AtTimeZoneExpression,
+          // fn() IGNORE NULLS
+          IgnoreNullsExpression,
+          // fn() RESPECT NULLS
+          RespectNullsExpression,
+          // expr FORMAT JSON
+          FormatExpression,
+          // IF(cond, true, false)
+          IfExpression,
+          // CONVERT(expr, type) or CONVERT(expr USING charset)
+          ConvertExpression,
+          // EXTRACT(YEAR FROM date)
+          ExtractExpression,
+          // SUBSTRING(str FROM 1 FOR 3)
+          SubstringExpression,
+          // TRIM(BOTH ' ' FROM str)
+          TrimExpression,
+          // OVERLAY(str PLACING repl FROM pos FOR len)
+          OverlayExpression,
+          // POSITION(substr IN str)
+          PositionExpression,
+          // col > ANY (SELECT ...), col = ALL (SELECT ...)
+          SubqueryPredicateExpression,
+          // MATCH(col) AGAINST('text' IN BOOLEAN MODE)
+          MatchAgainstExpression,
+          // GROUP_CONCAT(col SEPARATOR ',')
+          GroupConcatExpression,
         }
 
         // Function invocations
@@ -891,6 +963,8 @@ oreql_macros::define_syntax_kinds! {
           IntervalLiteral,
           // DATE '2024-01-01'
           DateLiteral,
+          // TIME '12:30:00'
+          TimeLiteral,
           // TIMESTAMP '2024-01-01 00:00:00'
           TimestampLiteral,
         }
@@ -905,6 +979,10 @@ oreql_macros::define_syntax_kinds! {
           SchemaReference,
           // my_db
           DatabaseReference,
+          // my_func
+          FunctionReference,
+          // my_type
+          TypeReference,
         }
       }
 
@@ -922,6 +1000,16 @@ oreql_macros::define_syntax_kinds! {
         UnpivotExpression,
         // TABLESAMPLE (10 PERCENT)
         TableSampleExpression,
+        // CROSS APPLY / OUTER APPLY (SQL Server)
+        ApplyExpression,
+        // VALUES (1,2),(3,4) as table source
+        ValuesExpression,
+        // TABLE(fn()) table function
+        TableFunctionExpression,
+        // MATCH_RECOGNIZE (...) (Oracle)
+        MatchRecognizeExpression,
+        // table AS alias
+        TableAliasExpression,
       }
 
       // Set operations: combine query results
@@ -940,24 +1028,86 @@ oreql_macros::define_syntax_kinds! {
         ColumnDefinition,
         // INT, VARCHAR(255)
         DataType,
-        // PRIMARY KEY (id)
-        PrimaryKeyConstraint,
-        // FOREIGN KEY (col) REFERENCES ...
-        ForeignKeyConstraint,
-        // UNIQUE (col)
-        UniqueConstraint,
-        // CHECK (expr)
-        CheckConstraint,
-        // NOT NULL
-        NotNullConstraint,
-        // DEFAULT expr
-        DefaultConstraint,
-        // AUTO_INCREMENT
-        AutoIncrementConstraint,
-        // COMMENT 'text'
-        CommentConstraint,
-        // COLLATE utf8
-        CollateConstraint,
+        // INT(11), DECIMAL(10, 2) - type parameters
+        DataTypeParameter,
+        // INDEX idx_name (col1, col2)
+        IndexDefinition,
+        // PARTITION BY RANGE (col) (...)
+        PartitionDefinition,
+
+        // Column-level constraints
+        group is_column_constraint {
+          // PRIMARY KEY (id)
+          PrimaryKeyConstraint,
+          // FOREIGN KEY (col) REFERENCES ...
+          ForeignKeyConstraint,
+          // UNIQUE (col)
+          UniqueConstraint,
+          // CHECK (expr)
+          CheckConstraint,
+          // NOT NULL
+          NotNullConstraint,
+          // NULL
+          NullConstraint,
+          // DEFAULT expr
+          DefaultConstraint,
+          // AUTO_INCREMENT / AUTOINCREMENT / SERIAL
+          AutoIncrementConstraint,
+          // GENERATED ALWAYS AS (expr) STORED/VIRTUAL
+          GeneratedConstraint,
+          // GENERATED ALWAYS AS IDENTITY
+          IdentityConstraint,
+          // COMMENT 'text'
+          CommentConstraint,
+          // COLLATE utf8
+          CollateConstraint,
+          // REFERENCES table(col) ON DELETE CASCADE
+          ReferencesConstraint,
+          // CONSTRAINT name ...
+          NamedConstraint,
+          // ON UPDATE CURRENT_TIMESTAMP
+          OnUpdateConstraint,
+          // CHARACTER SET utf8
+          CharacterSetConstraint,
+          // ENCODING AUTO
+          EncodingConstraint,
+          // INVISIBLE / VISIBLE
+          VisibilityConstraint,
+        }
+
+        // Table-level properties
+        group is_table_property {
+          // ENGINE = InnoDB
+          EngineProperty,
+          // CHARACTER SET = utf8mb4
+          CharacterSetProperty,
+          // COLLATE = utf8mb4_unicode_ci
+          CollateProperty,
+          // AUTO_INCREMENT = 1000
+          AutoIncrementProperty,
+          // COMMENT = 'text'
+          CommentProperty,
+          // ROW_FORMAT = DYNAMIC
+          RowFormatProperty,
+          // TABLESPACE ts_name
+          TablespaceProperty,
+          // PARTITION BY ...
+          PartitionByProperty,
+          // CLUSTER BY (col)
+          ClusterByProperty,
+          // DISTRIBUTED BY (col)
+          DistributedByProperty,
+          // SORT BY (col)
+          SortByProperty,
+          // STORED AS PARQUET
+          StoredAsProperty,
+          // LOCATION '/path'
+          LocationProperty,
+          // TBLPROPERTIES ('key'='val')
+          TablePropertiesProperty,
+          // WITH (option = val)
+          WithProperty,
+        }
       }
 
       // Grouping modifiers for GROUP BY
@@ -976,8 +1126,14 @@ oreql_macros::define_syntax_kinds! {
         WindowSpecification,
         // ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         WindowFrame,
+        // UNBOUNDED PRECEDING, CURRENT ROW, 5 FOLLOWING
+        WindowFrameBound,
+        // EXCLUDE CURRENT ROW / EXCLUDE GROUP / EXCLUDE TIES
+        WindowExclude,
         // col ASC NULLS FIRST
         OrderByItem,
+        // DISTINCT / ALL modifier on function args
+        SetQuantifier,
       }
 
       // command string after SHOW/EXPLAIN
