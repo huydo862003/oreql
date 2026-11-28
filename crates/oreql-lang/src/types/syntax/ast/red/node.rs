@@ -2,9 +2,7 @@ use std::cell::UnsafeCell;
 
 use crate::types::TextRange;
 use crate::types::syntax::ast::OreqlSyntaxKind;
-use crate::types::syntax::ast::green::{
-  GreenNodeChildrenIter, GreenTree, OreqlGreenNode, OreqlGreenNodeMultiArena,
-};
+use crate::types::syntax::ast::green::{GreenTree, OreqlGreenNode, OreqlGreenNodeMultiArena};
 
 oreql_macros::define_multi_arena! {
   /// Red node: parent red index + child position + green index
@@ -103,14 +101,23 @@ impl OreqlRedNode {
 
   /// Iterator over direct children
   ///
-  /// Pushes each child into the red arena on iteration
+  /// Eagerly pushes all children into the red arena, then returns an iterator over the contiguous range
   #[inline]
-  pub fn children(self, tree: &OreqlRedTree) -> RedNodeChildrenIterator<'_> {
+  pub fn children(self, tree: &OreqlRedTree) -> RedNodeChildrenIterator {
+    let green_children = self.green(tree).children(tree.green_arena());
+    let count = green_children.len() as u32;
+    let red_arena = tree.red_arena_mut();
+    let first_red = red_arena.len();
+    if count > 0 {
+      red_arena.reserve(count);
+      let parent_red = self.index();
+      for (position, green_child) in green_children.enumerate() {
+        red_arena.push(parent_red, position as u32, green_child.index());
+      }
+    }
     RedNodeChildrenIterator {
-      tree,
-      parent_red: self.index(),
-      inner: self.green(tree).children(tree.green_arena()),
-      position: 0,
+      current_offset: first_red,
+      end_offset: first_red + count,
     }
   }
 
@@ -168,36 +175,33 @@ impl OreqlRedNode {
   }
 }
 
-/// Iterator over red node children
-pub struct RedNodeChildrenIterator<'a> {
-  tree: &'a OreqlRedTree,
-  parent_red: u32,
-  inner: GreenNodeChildrenIter,
-  position: u32,
+/// Iterator over red node children (contiguous range in the red arena)
+pub struct RedNodeChildrenIterator {
+  current_offset: u32,
+  end_offset: u32,
 }
 
-impl Iterator for RedNodeChildrenIterator<'_> {
+impl Iterator for RedNodeChildrenIterator {
   type Item = OreqlRedNode;
 
   #[inline]
   fn next(&mut self) -> Option<OreqlRedNode> {
-    let green = self.inner.next()?;
-    let index = self.position;
-    self.position += 1;
-    let red = self
-      .tree
-      .red_arena_mut()
-      .push(self.parent_red, index, green.index());
-    Some(red)
+    if self.current_offset >= self.end_offset {
+      return None;
+    }
+    let handle = OreqlRedNode::from_index(self.current_offset);
+    self.current_offset += 1;
+    Some(handle)
   }
 
   #[inline]
   fn size_hint(&self) -> (usize, Option<usize>) {
-    self.inner.size_hint()
+    let remaining = (self.end_offset - self.current_offset) as usize;
+    (remaining, Some(remaining))
   }
 }
 
-impl ExactSizeIterator for RedNodeChildrenIterator<'_> {}
+impl ExactSizeIterator for RedNodeChildrenIterator {}
 
 #[cfg(test)]
 mod tests {
