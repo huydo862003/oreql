@@ -125,6 +125,16 @@ fn multiple_escaped_quotes() {
   );
 }
 
+/// String starting with doubled quote escape then content
+#[test]
+fn leading_escaped_quote() {
+  assert_snapshot!(
+    "'''abc'",
+    r#"(String "'''abc'")
+(Eof "")"#
+  );
+}
+
 /// String containing only escaped quotes
 #[test]
 fn only_escaped_quotes() {

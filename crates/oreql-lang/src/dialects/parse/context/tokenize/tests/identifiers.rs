@@ -323,3 +323,62 @@ fn compound_keyword_prefix_whitespace_then_eof() {
 (Eof "")"#
   );
 }
+
+/// Compound keyword prefix followed by word starting with matching prefix
+#[test]
+fn compound_keyword_prefix_partial_match() {
+  assert_snapshot!(
+    "GROUP bys",
+    r#"(Identifier "GROUP")
+(Whitespace " ")
+(Identifier "bys")
+(Eof "")"#
+  );
+}
+
+/// Compound keyword with block comment directly adjacent (no spaces)
+#[test]
+fn compound_keyword_comment_no_spaces() {
+  assert_snapshot!(
+    "GROUP/* */BY",
+    r#"(KeywordGroupBy "GROUP/* */BY")
+(Eof "")"#
+  );
+}
+
+/// Compound keyword prefix with comment then non-matching word
+#[test]
+fn compound_keyword_comment_then_partial_match() {
+  assert_snapshot!(
+    "GROUP /* comment */ BYs",
+    r#"(Identifier "GROUP")
+(Whitespace " ")
+(BlockComment "/* comment */")
+(Whitespace " ")
+(Identifier "BYs")
+(Eof "")"#
+  );
+}
+
+/// Compound keyword followed immediately by punctuation
+#[test]
+fn compound_keyword_then_punctuation() {
+  assert_snapshot!(
+    "GROUP BY)",
+    r#"(KeywordGroupBy "GROUP BY")
+(RParen ")")
+(Eof "")"#
+  );
+}
+
+/// Compound keyword prefix followed by bare CR
+#[test]
+fn compound_keyword_prefix_then_cr() {
+  assert_snapshot!(
+    "GROUP \r",
+    r#"(Identifier "GROUP")
+(Whitespace " ")
+(Newline "\r")
+(Eof "")"#
+  );
+}

@@ -159,3 +159,39 @@ fn inline_empty_then_newline() {
 (Eof "")"#
   );
 }
+
+/// `/*/` opens a block comment (not `/*` + `/`), closed by next `*/`
+#[test]
+fn block_comment_tricky_open() {
+  assert_snapshot!(
+    "1 /*/2 */",
+    r#"(Number "1")
+(Whitespace " ")
+(BlockComment "/*/2 */")
+(Eof "")"#
+  );
+}
+
+/// Block comment between two numbers
+#[test]
+fn block_comment_between_numbers() {
+  assert_snapshot!(
+    "1/* */2",
+    r#"(Number "1")
+(BlockComment "/* */")
+(Number "2")
+(Eof "")"#
+  );
+}
+
+/// Block comment between two identifiers
+#[test]
+fn block_comment_between_identifiers() {
+  assert_snapshot!(
+    "a/**/b",
+    r#"(Identifier "a")
+(BlockComment "/**/")
+(Identifier "b")
+(Eof "")"#
+  );
+}
