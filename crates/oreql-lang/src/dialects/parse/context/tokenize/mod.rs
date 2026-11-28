@@ -4,7 +4,7 @@ use crate::{OreqlDiagnosticKind, OreqlString, OreqlSyntaxKind};
 use super::super::DialectParser;
 use super::ParserContext;
 use super::default_tokenizer_config::*;
-use oreql_utils::{ByteLut, TrieResult};
+use oreql_utils::{BitSet128, TrieResult};
 
 /// Result of peeking a token, holds diagnostics for replay
 pub struct PeekResult {
@@ -675,15 +675,15 @@ impl<D: DialectParser> ParserContext<'_, D> {
       "tokenize_prefixed_string() called but current byte is not ASCII alphabetic"
     );
     let raw_escape_bytes = if **config.are_escapes_allowed_in_raw_strings {
-      config.string_escape_bytes as &ByteLut<bool>
+      config.string_escape_bytes as &BitSet128
     } else {
-      &ByteLut::new()
+      &BitSet128::new()
     };
     let start = self.current_byte_offset as u32;
     let source = self.source_bytes();
     let remaining = &source[(start as usize)..];
 
-    let delimiter_sets: &[(&[(&str, &str)], OreqlSyntaxKind, &ByteLut<bool>)] = &[
+    let delimiter_sets: &[(&[DelimiterPair], OreqlSyntaxKind, &BitSet128)] = &[
       (
         config.bit_strings,
         OreqlSyntaxKind::BitString,
@@ -717,7 +717,7 @@ impl<D: DialectParser> ParserContext<'_, D> {
       (
         config.heredoc_strings,
         OreqlSyntaxKind::HeredocString,
-        &ByteLut::new(),
+        &BitSet128::new(),
       ),
     ];
 
@@ -890,7 +890,7 @@ impl<D: DialectParser> ParserContext<'_, D> {
   fn scan_until_delimiter(
     &mut self,
     delimiter: &[u8],
-    escape_bytes: &ByteLut<bool>,
+    escape_bytes: &BitSet128,
     unterminated_diagnostic: OreqlDiagnosticKind,
   ) {
     debug_assert!(

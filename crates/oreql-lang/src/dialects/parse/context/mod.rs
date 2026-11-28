@@ -113,17 +113,6 @@ impl<'a, D: DialectParser> ParserContext<'a, D> {
     ));
   }
 
-  /// Emit a diagnostic warning
-  pub(crate) fn emit_warning(&mut self, kind: OreqlDiagnosticKind, start: u32, end: u32) {
-    self.diagnostics.push(OreqlDiagnostic::warning(
-      kind,
-      TextRange {
-        start_byte_offset: start,
-        end_byte_offset: end,
-      },
-    ));
-  }
-
   /// Consume a previously peeked token: advance offset, commit diagnostics, push to builder
   ///
   /// INVARIANT: must be the result of the most recent peek

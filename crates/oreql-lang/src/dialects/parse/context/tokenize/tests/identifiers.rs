@@ -299,8 +299,13 @@ fn keyword_compound_split_by_inline_comment() {
 fn very_long_identifier() {
   let long = "a".repeat(200);
   let output = tokenize_snapshot::<TestDialect>(&long);
-  assert_eq!(output, format!(r#"(Identifier "{long}")
-(Eof "")"#));
+  assert_eq!(
+    output,
+    format!(
+      r#"(Identifier "{long}")
+(Eof "")"#
+    )
+  );
 }
 
 /// Compound keyword prefix at EOF produces identifier

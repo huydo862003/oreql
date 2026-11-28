@@ -3,6 +3,7 @@ mod diagnostic;
 mod dialect_config;
 mod multi_arena;
 mod syntax_kinds;
+mod utils;
 
 use proc_macro::TokenStream;
 
@@ -77,26 +78,45 @@ pub fn diagnostic_kind(attr: TokenStream, item: TokenStream) -> TokenStream {
   diagnostic::diagnostic_kind_impl(attr, item)
 }
 
-/// Defines a typed AST node wrapper with child accessors
+/// Defines a typed AST node for a single SyntaxKind variant
+///
+/// Struct name must match the SyntaxKind variant exactly.
+/// Fields declare child accessors using SyntaxKind variant names.
 ///
 /// ```ignore
-/// #[oreql_macros::ast_node(SelectStatement)]
-/// pub struct SelectStatementNode {
-///   select_clause: SelectClauseNode,
-///   from_clause: FromClauseNode,
-///   where_clause: WhereClauseNode,
+/// #[oreql_macros::ast_node]
+/// pub struct SelectStatement {
+///   select_clause: SelectClause,
+///   from_clause: FromClause,
 /// }
 ///
-/// // Generates:
-/// // - SelectStatementNode(OreqlRedNode) newtype
-/// // - AstNode trait impl (cast, syntax)
-/// // - select_clause(self, &tree) -> Option<SelectClauseNode>
-/// // - from_clause(self, &tree) -> Option<FromClauseNode>
-/// // - where_clause(self, &tree) -> Option<WhereClauseNode>
+/// // Generates SelectStatement<'a> with:
+/// // - AstNode impl (cast on OreqlSyntaxKind::SelectStatement)
+/// // - TryFrom<(OreqlRedNode, &OreqlRedTree)>
+/// // - select_clause(&self) -> Option<OreqlRedNode>
+/// // - from_clause(&self) -> Option<OreqlRedNode>
 /// ```
 #[proc_macro_attribute]
 pub fn ast_node(attr: TokenStream, item: TokenStream) -> TokenStream {
   ast_node::ast_node_impl(attr, item)
+}
+
+/// Defines a typed AST node for a SyntaxKind group
+///
+/// Uses the `is_*()` predicate for casting. Compile-time asserts
+/// the predicate exists on OreqlSyntaxKind.
+///
+/// ```ignore
+/// #[oreql_macros::ast_group(is_expression)]
+/// pub struct Expression {}
+///
+/// // Generates Expression<'a> with:
+/// // - AstNode impl (cast using kind.is_expression())
+/// // - TryFrom<(OreqlRedNode, &OreqlRedTree)>
+/// ```
+#[proc_macro_attribute]
+pub fn ast_group(attr: TokenStream, item: TokenStream) -> TokenStream {
+  ast_node::ast_group_impl(attr, item)
 }
 
 /// Declares typed dialect config wrappers with defaults

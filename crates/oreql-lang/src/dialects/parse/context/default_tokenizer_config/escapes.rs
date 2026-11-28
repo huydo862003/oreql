@@ -1,23 +1,23 @@
-use oreql_utils::ByteLut;
+use oreql_utils::BitSet128;
 
 oreql_macros::dialect_config! {
   /// Bytes that act as escape characters inside **strings**
-  pub struct StringEscapeBytesConfig(ByteLut<bool>)
-    = ByteLut::new().set(b'\'', true);
+  pub struct StringEscapeBytesConfig(BitSet128)
+    = BitSet128::new().insert(b'\'');
 
   /// Bytes that act as escape characters inside **byte strings**
-  pub struct ByteStringEscapeBytesConfig(ByteLut<bool>)
-    = ByteLut::new().set(b'\'', true);
+  pub struct ByteStringEscapeBytesConfig(BitSet128)
+    = BitSet128::new().insert(b'\'');
 
   /// Bytes that act as escape characters inside **identifiers**
-  pub struct IdentifierEscapeBytesConfig(ByteLut<bool>)
-    = ByteLut::new();
+  pub struct IdentifierEscapeBytesConfig(BitSet128)
+    = BitSet128::new();
 
   /// Bytes that can follow an escape character
   ///
-  /// e.g. `.set(b'n', true).set(b't', true)` for `\n`, `\t`
-  pub struct EscapeFollowBytesConfig(ByteLut<bool>)
-    = ByteLut::new();
+  /// e.g. `.insert(b'n').insert(b't')` for `\n`, `\t`
+  pub struct EscapeFollowBytesConfig(BitSet128)
+    = BitSet128::new();
 
   /// Whether escape characters work inside raw strings
   pub struct AreEscapesAllowedInRawStringsConfig(bool) = true;

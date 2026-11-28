@@ -27,7 +27,7 @@ pub fn define_syntax_kinds_impl(input: TokenStream) -> TokenStream {
     quote! {
       #(#attrs)*
       #[inline]
-      #visibility fn #predicate(self) -> bool {
+      #visibility const fn #predicate(self) -> bool {
         matches!(self, #(Self::#variants)|*)
       }
     }

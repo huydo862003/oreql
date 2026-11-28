@@ -9,6 +9,9 @@ mod single_byte_tokens;
 mod string_literals;
 mod template_tokens;
 
+/// (open, close) delimiter pair for string/comment/identifier quoting
+pub type DelimiterPair = (&'static str, &'static str);
+
 pub use comments::*;
 pub use escapes::*;
 pub use hints::*;

@@ -938,7 +938,7 @@ oreql_macros::define_syntax_kinds! {
         }
 
         // Function invocations
-        group is_function_call {
+        group is_call_expression {
           // fn(args)
           FunctionCall,
           // COUNT(DISTINCT x)

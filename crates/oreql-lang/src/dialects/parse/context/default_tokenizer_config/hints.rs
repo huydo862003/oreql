@@ -1,10 +1,11 @@
+use super::DelimiterPair;
 use crate::OreqlSyntaxKind;
 
 oreql_macros::dialect_config! {
   /// (start, end) delimiters for **hint** comments
   ///
   /// e.g. `&[("/*+", "*/")]` for `/*+ hint */`
-  pub struct HintCommentDelimitersConfig(&'static [(&'static str, &'static str)])
+  pub struct HintCommentDelimitersConfig(&'static [DelimiterPair])
     = &[];
 
   /// Token kinds that can appear before a hint comment

@@ -53,7 +53,9 @@ impl OreqlRedTree {
   }
 
   #[inline]
+  #[allow(clippy::mut_from_ref)]
   fn red_arena_mut(&self) -> &mut OreqlRedNodeMultiArena {
+    // Safety: single-threaded, UnsafeCell provides interior mutability
     unsafe { &mut *self.red.get() }
   }
 }

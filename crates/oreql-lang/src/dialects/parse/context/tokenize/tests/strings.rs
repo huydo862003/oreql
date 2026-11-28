@@ -1,5 +1,5 @@
 use super::*;
-use oreql_utils::ByteLut;
+use oreql_utils::BitSet128;
 
 /* Regular string literals */
 
@@ -153,7 +153,7 @@ impl DialectParser for BackslashEscapeDialect {
     context: &mut ParserContext<'_, Self>,
   ) -> (OreqlSyntaxKind, crate::OreqlString) {
     static ESCAPE_CONFIG: StringEscapeBytesConfig =
-      StringEscapeBytesConfig::new(ByteLut::new().set(b'\'', true).set(b'\\', true));
+      StringEscapeBytesConfig::new(BitSet128::new().insert(b'\'').insert(b'\\'));
     context.tokenize_string_lit(&TokenizeStringConfig {
       quotes: StringQuotesConfig::default(),
       escape_bytes: &ESCAPE_CONFIG,

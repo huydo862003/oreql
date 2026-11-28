@@ -1,3 +1,5 @@
+use super::DelimiterPair;
+
 oreql_macros::dialect_config! {
   /// Start patterns for **inline** (single-line) comments
   ///
@@ -8,6 +10,6 @@ oreql_macros::dialect_config! {
   /// (start, end) delimiters for **block** (multi-line) comments
   ///
   /// e.g. `[("/*", "*/"), ("{#", "#}")]` for `/* block */` or `{# jinja #}`
-  pub struct BlockCommentDelimitersConfig(&'static [(&'static str, &'static str)])
+  pub struct BlockCommentDelimitersConfig(&'static [DelimiterPair])
     = &[("/*", "*/"), ("{#", "#}")];
 }

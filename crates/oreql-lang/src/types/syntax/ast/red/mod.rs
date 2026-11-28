@@ -1,3 +1,3 @@
 mod node;
 
-pub use node::{OreqlRedTree, RedNodeChildrenIterator};
+pub use node::{OreqlRedNode, OreqlRedNodeMultiArena, OreqlRedTree, RedNodeChildrenIterator};

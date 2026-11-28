@@ -1,6 +1,6 @@
 use crate::OreqlSyntaxKind;
 use OreqlSyntaxKind::*;
-use oreql_utils::{ByteLut, TrieMap};
+use oreql_utils::{BitSet128, ByteLut, TrieMap};
 
 oreql_macros::dialect_config! {
   /// Single-byte tokens for **JSON path** tokenization
@@ -28,10 +28,10 @@ oreql_macros::dialect_config! {
   ]);
 
   /// Escape bytes for **JSON path** strings
-  pub struct JsonPathStringEscapeBytesConfig(ByteLut<bool>) =
-    ByteLut::new().set(b'\\', true);
+  pub struct JsonPathStringEscapeBytesConfig(BitSet128) =
+    BitSet128::new().insert(b'\\');
 
   /// Escape bytes for **JSON path** identifiers
-  pub struct JsonPathIdentifierEscapeBytesConfig(ByteLut<bool>) =
-    ByteLut::new().set(b'\\', true);
+  pub struct JsonPathIdentifierEscapeBytesConfig(BitSet128) =
+    BitSet128::new().insert(b'\\');
 }
